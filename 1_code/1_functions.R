@@ -1,4 +1,17 @@
 
+# generic helper functions ------------------------------------------------
+
+get_data <- function(path) {
+  if(!is.null(path)) {
+    paste0("../../3_data_encrypted/MESA_2021b/Primary/", path)
+  } else {
+    stop("Must specify location of CSV directory!")
+  }
+}
+
+
+# simulation functions ----------------------------------------------------
+
 generate_snaftm <-
   function(N = 1000,
            P = 1,
@@ -87,6 +100,10 @@ generate_snaftm <-
   mat <- cbind("id" = 1:N, mat, "T0" = T0, "T" = T)
   return(mat)
 }
+
+
+# g-methods ---------------------------------------------------------------
+
 
 snaftm <- function() {
   

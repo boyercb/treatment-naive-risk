@@ -55,7 +55,7 @@ exam1_vars <- c(
   "hinone1",    # no health insurance
   "evsmk1",     # ever smoked
   "cursmk1",    # current cigarette smoker
-  "highalc1",   # alcoholic drinks per day
+  "alcwk1c",    # alcoholic drinks per week
   "sbp1c",      # mean sbp
   "dbp1c",      # mean dbp
   "chol1",      # total cholesterol

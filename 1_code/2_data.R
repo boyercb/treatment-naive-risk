@@ -112,7 +112,34 @@ exam4_vars <- exam4_vars[!exam4_vars %in% c("income4",
                                             "q14cmcm4",
                                             "q15cvcm4")]
 
-exam_vars <- list(exam1_vars, exam2_vars, exam3_vars, exam4_vars, exam5_vars)
+cvd_vars <- c(
+  "fuptt",
+  "prebase",
+  "exall",
+  "ang",
+  "angtype",
+  "angtt",
+  "dth",
+  "dthtype",
+  "dthtext",
+  "dthtt",
+  "chdh",
+  "chdhtt",
+  "chda",
+  "chdatt",
+  "cvdh",
+  "cvdhtt",
+  "cvda",
+  "cvdatt"
+)
+
+mesa_vars <-
+  list(exam1_vars,
+       exam2_vars,
+       exam3_vars,
+       exam4_vars,
+       exam5_vars,
+       cvd_vars)
 
 id_vars <- c("mesaid")
 time_vars <- c(
@@ -124,11 +151,11 @@ time_vars <- c(
 
 dats <- lapply(seq(1, length(dats)), function(x) {
   if (x == 1) {
-    dats[[x]][, c(id_vars, exam_vars[[x]])]
+    dats[[x]][, c(id_vars, mesa_vars[[x]])]
   } else if (x <= 5) {
-    dats[[x]][, c(id_vars, time_vars[x-1], exam_vars[[x]])]
+    dats[[x]][, c(id_vars, time_vars[x-1], mesa_vars[[x]])]
   } else {
-    dats[[x]]
+    dats[[x]][, c(id_vars, mesa_vars[[x]])]
   }
 })
 

@@ -62,6 +62,8 @@ ndf <- create_node_df(
             3, 3, 3, 3, 3), # Column 2
   height = c(1, 0.001, 0.001, 0.001, 1, # Column 1
              1, 1, 1, 1, 1), # Column 2
+  color = 'black',
+  fontcolor = 'black',
   fontsize = c(rep(14, 10)),
   fontname = c(rep('Helvetica', 10)),
   penwidth = 1.5,

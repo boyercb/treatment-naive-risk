@@ -35,17 +35,48 @@ exam1_vars <- c(
   "gender1",    # gender
   "race1c",     # race/ethnicity
   "dm031c",     # diabetes (calc)
-  "frncep1c",   # framingham risk score (NCEP)
+#  "frncep1c",   # framingham risk score (NCEP)
   "htn1c",      # hypertension (calc)
   "htnstg1c",   # hypertension stage (calc)
   "bmi1c",      # bmi
+  "htcm1",      # height
+  "wtlb1",      # weight
+  "hipcm1",     # hip circumference
+  "waistcm1",   # waist circumference
+  "cesd1c",     # CESD depression scale
+  "chrbu61c",   # chronic burden > 6 months
+  "discry1c",   # perceived discrimination 1 yr
+  "emot1c",     # emotional support
+  "hassl1c",    # hassle scale
+  "splang1c",   # anger scale
+  "splanx1c",   # anxiety scale 
+  "preg1",      # ever been pregnant
+  "pregn1",     # number of pregnancies
+  "bcpills1",   # ever birth control pills
+  "bpillyr1",   # birth control pill years
+  "mnpause1",   # ever went through menopause
+  "menoage1",   # menopause age
+  "hrmrep1",    # hormone replacement therapy (ever)
+  
+  "cancer1",    # history of cancer
+  "pmi1",       # family history of MI: parent
+  "pstk1",      # family history of stroke: parent
+  "shrtatt1",   # family history of MI: sibling
+  "sstk1",      # family history of stroke: sibling
+  "chrtatt1",   # family history of MI: child
+  "cstk1",      # family history of stroke: child
+  
+  "anydep1c",   # any anti-depressant
+  "anara1c",    # any anti-arrythmic
+  "vasoda1c",   # any vasodilator
+
+  "nprob1c",    # neighborhood problems scale
   "highbp1",    # high blood pressure (self-reported)
   "bphxage1",   # age started bp meds
   "hghchol1",   # high cholesterol (self-reported)
-  "cholage1",   # age started chol meds
-  "diabet1",    # diabetes (self-reported)
-  "aspnow1",    # aspirin use
-  "aspsage1",   # aspirin use now
+  "aspirin1",   # aspirin ever
+  "asacat1c",   # aspirin use
+  "aspsage1",   # age started aspirin
   "htnmed1c",   # anti-hypertensive meds
   "lipid1c",    # lipid-lowering meds
   "marital1",   # marital status
@@ -55,6 +86,7 @@ exam1_vars <- c(
   "hinone1",    # no health insurance
   "evsmk1",     # ever smoked
   "cursmk1",    # current cigarette smoker
+  "alcohol1",   # ever drank alcohol
   "alcwk1c",    # alcoholic drinks per week
   "sbp1c",      # mean sbp
   "dbp1c",      # mean dbp
@@ -63,6 +95,10 @@ exam1_vars <- c(
   "ldl1",       # LDL cholesterol
   "trig1",      # Triglycerides
   "crp1",       # CRP
+  "il61",       # IL-6
+  "agatpm1c",   # CAC score
+  "ecglvh1c",   # left ventricular hypertrophy
+  "afib1c",     # afib on ECG
   "exercm1c"    # exercise per week
 )
 
@@ -72,9 +108,18 @@ exam2_vars <- c(
   "frncep2c",   # framingham risk score (NCEP)
   "htn2c",      # hypertension (calc)
   "bmi2c",      # bmi
-  "aspirin2",   # aspirin use
+  "htcm2",      # height
+  "wtlb2",      # weight
+  "hipcm2",     # hip circumference
+  "waistcm2",   # waist circumference
+  "asacat2c",   # aspirin use
   "lipid2c",    # lipid-lowering meds
   "htnmed2c",   # anti-hypertensive meds
+  "wtls2c",     # any weight loss drugs
+  "diur2c",     # any diuretic
+  "anydep2c",   # any anti-depressant
+  "anara2c",    # any anti-arrythmic
+  "vasoda2c",   # any vasodilator
   "empstat2",   # change in employment status?
   "curjob2",    # employment status
   "income2",    # income
@@ -90,13 +135,13 @@ exam2_vars <- c(
   "hdl2",       # HDL cholesterol
   "ldl2",       # LDL cholesterol
   "trig2",      # Triglycerides
-  "q09wmcm2",   # exercise per week
-  "q10smcm2",
-  "q11svcm2",
-  "q12svcm2",
-  "q13smcm2",
-  "q14cmcm2",
-  "q15cvcm2"
+  "q09wmcm2",   # exercise: moderate walking
+  "q10smcm2",   # exercise: moderate dance
+  "q11svcm2",   # exercise: vigorous team sports
+  "q12svcm2",   # exercise: vigorous dual sports
+  "q13smcm2",   # exercise: moderate individual activities
+  "q14cmcm2",   # exercise: moderate conditioning
+  "q15cvcm2"    # exercise: vigorous conditioning
 )
 
 exam3_vars <- str_replace(str_replace(exam2_vars, "2$", "3"), "2c$", "3c")

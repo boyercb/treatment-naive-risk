@@ -5,8 +5,8 @@ mesa <- filter(mesa, age1c >= 40 & age1c <= 79)
 
 exclude_age <- original_n - nrow(mesa)
 
-# exclude those with pre-existing CVD at baseline
-mesa <- filter(mesa, prebase == "")
+# exclude those with pre-existing CVD at baseline or no follow up data
+mesa <- filter(mesa, prebase == ""  & !is.na(cvdatt))
 
 exclude_prebase <- original_n - exclude_age - nrow(mesa)
 

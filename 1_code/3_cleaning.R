@@ -1,4 +1,246 @@
 
+# variable lists ----------------------------------------------------------
+
+baseline_vars <- c(
+  "gender1",
+  "married1",
+  "educ_sec1",
+  "educ_col1",
+  "race_black1",
+  "race_hisp1",
+  "race_asia1",
+  "employed1",
+  "retired1",
+  "evsmk1",
+  "cesd1c",
+  "chrbu61c",
+  "discry1c",
+  "emot1c",
+  "hassl1c",
+  "splang1c",
+  "splanx1c",
+  "pregn1",
+  "bpillyr1",
+  "menoage1",
+  "nprob1c",
+  "famhist1",
+  "agatpm1c",
+  "ecglvh1c",
+  "afib1c",
+  "crp1",
+  "il61"
+)
+
+baseline_vars_long <- c(
+  "bl_age",
+  "bl_dm03",
+  "bl_htn",
+  "bl_cursmk",
+  "bl_waistcm",
+  "bl_htnmed",
+  "bl_asacat",
+  "bl_diur",
+  "bl_diabins",
+  "bl_anydep",
+  "bl_vasoda",
+  "bl_anara",
+  "bl_hinone",
+  "bl_sbp",
+  "bl_dbp",
+  "bl_ldl",
+  "bl_hdl",
+  "bl_trig",
+  "bl_dpw",
+  "bl_exercise"
+)
+
+# create list of time-varying covariates
+tv_vars <- c(
+  "age",
+  "dm03",
+  "htn",
+  "cursmk",
+  "waistcm",
+  "htnmed",
+  "asacat",
+  "diur",
+  "diabins",
+  "anydep",
+  "vasoda",
+  "anara",
+  "hinone",
+  "sbp",
+  "dbp",
+  "ldl",
+  "hdl",
+  "trig", 
+  "dpw",
+  "exercise"
+)
+
+tv_vars_wide <- c(
+  "age1c",
+  "dm031c",
+  "htn1c",
+  "bmi1c",
+  "htcm1",
+  "wtlb1",
+  "hipcm1",
+  "waistcm1",
+  "asacat1c",
+  "lipid1c",
+  "htnmed1c",
+  "diabins1",
+  "anydep1c",
+  "anara1c",
+  "vasoda1c",
+  "income1",
+  "hinone1",
+  "cursmk1",
+  "sbp1c",
+  "dbp1c",
+  "chol1",
+  "hdl1",
+  "ldl1",
+  "trig1",
+  "age2c",
+  "dm032c",
+  "htn2c",
+  "bmi2c",
+  "htcm2",
+  "wtlb2",
+  "hipcm2",
+  "waistcm2",
+  "asacat2c",
+  "lipid2c",
+  "htnmed2c",
+  "diur2c",
+  "diabins2",
+  "anydep2c",
+  "anara2c",
+  "vasoda2c",
+  "income2",
+  "hinone2",
+  "cursmk2",
+  "sbp2c",
+  "dbp2c",
+  "chol2",
+  "hdl2",
+  "ldl2",
+  "trig2",
+  "age3c",
+  "dm033c",
+  "htn3c",
+  "bmi3c",
+  "htcm3",
+  "wtlb3",
+  "hipcm3",
+  "waistcm3",
+  "asacat3c",
+  "lipid3c",
+  "htnmed3c",
+  "diur3c",
+  "diabins3",
+  "anydep3c",
+  "anara3c",
+  "vasoda3c",
+  "income3",
+  "hinone3",
+  "cursmk3",
+  "sbp3c",
+  "dbp3c",
+  "chol3",
+  "hdl3",
+  "ldl3",
+  "trig3",
+  "age4c",
+  "dm034c",
+  "htn4c",
+  "bmi4c",
+  "htcm4",
+  "wtlb4",
+  "hipcm4",
+  "waistcm4",
+  "asacat4c",
+  "lipid4c",
+  "htnmed4c",
+  "diur4c",
+  "diabins4",
+  "anydep4c",
+  "anara4c",
+  "vasoda4c",
+  "hinone4",
+  "cursmk4",
+  "sbp4c",
+  "dbp4c",
+  "chol4",
+  "hdl4",
+  "ldl4",
+  "trig4",
+  "age5c",
+  "dm035c",
+  "htn5c",
+  "bmi5c",
+  "htcm5",
+  "wtlb5",
+  "hipcm5",
+  "waistcm5",
+  "asacat5c",
+  "lipid5c",
+  "htnmed5c",
+  "diur5c",
+  "diabins5",
+  "anydep5c",
+  "anara5c",
+  "vasoda5c",
+  "income5",
+  "hinone5",
+  "cursmk5",
+  "sbp5c",
+  "dbp5c",
+  "chol5",
+  "hdl5",
+  "ldl5",
+  "trig5",
+  "exercise1",
+  "exercise2",
+  "exercise3",
+  "exercise4",
+  "exercise5",
+  "dpw1",
+  "dpw2",
+  "dpw3",
+  "dpw4",
+  "dpw5",
+  "employed2",
+  "employed3",
+  "employed4",
+  "employed5",
+  "retired2",
+  "retired3",
+  "retired4",
+  "retired5"
+  )
+
+outcome_vars <- c(
+  "cvdatt",
+  "cvdatt_alt",
+  "cvda"
+)
+
+time_vars_wide <- c(
+  "time2",
+  "time3",
+  "time4",
+  "time5"
+)
+
+ref_vars <- c(
+  "race_white1",
+  "educ_pri1"
+)
+
+
 # create analytic variables -----------------------------------------------
 
 mesa <- 
@@ -94,14 +336,38 @@ mesa <-
     exercise1 = exercm1c,
     exercise2 = rowSums(select(., q09wmcm2:q15cvcm2)),
     exercise3 = rowSums(select(., q09wmcm3:q15cvcm3)),
+    exercise4 = exercise3,
     exercise5 = rowSums(select(., q09wmcm5:q15cvcm5)),
 
     # calculate drinks per week
+    rwinewk2 = replace(rwinewk2, curalc2 == 0, 0), 
+    rwinewk3 = replace(rwinewk3, curalc3 == 0, 0), 
+    rwinewk4 = replace(rwinewk4, curalc4 == 0, 0), 
+    rwinewk5 = replace(rwinewk5, curalc5 == 0, 0), 
+    wwinewk2 = replace(wwinewk2, curalc2 == 0, 0), 
+    wwinewk3 = replace(wwinewk3, curalc3 == 0, 0), 
+    wwinewk4 = replace(wwinewk4, curalc4 == 0, 0), 
+    wwinewk5 = replace(wwinewk5, curalc5 == 0, 0),
+    beerwk2 = replace(beerwk2, curalc2 == 0, 0), 
+    beerwk3 = replace(beerwk3, curalc3 == 0, 0), 
+    beerwk4 = replace(beerwk4, curalc4 == 0, 0), 
+    beerwk5 = replace(beerwk5, curalc5 == 0, 0),
+    liqwk2 = replace(liqwk2, curalc2 == 0, 0), 
+    liqwk3 = replace(liqwk3, curalc3 == 0, 0), 
+    liqwk4 = replace(liqwk4, curalc4 == 0, 0), 
+    liqwk5 = replace(liqwk5, curalc5 == 0, 0),
+    
     dpw1 = replace(alcwk1c, alcohol1 == 0, 0),
-    dpw2 = rowSums(select(., rwinewk2:liqwk2)),
-    dpw3 = rowSums(select(., rwinewk3:liqwk3)),
-    dpw4 = rowSums(select(., rwinewk4:liqwk4)),
-    dpw5 = rowSums(select(., rwinewk5:liqwk5)),
+    dpw2 = rowSums(select(., rwinewk2:liqwk2), na.rm = T),
+    dpw3 = rowSums(select(., rwinewk3:liqwk3), na.rm = T),
+    dpw4 = rowSums(select(., rwinewk4:liqwk4), na.rm = T),
+    dpw5 = rowSums(select(., rwinewk5:liqwk5), na.rm = T),
+    
+    # current smoker
+    cursmk2 = replace(cursmk2, smkstat2 == 0, 0),
+    cursmk3 = replace(cursmk3, smkstat3 == 0, 0),
+    cursmk4 = replace(cursmk4, smkstat4 == 0, 0),
+    cursmk5 = replace(cursmk5, smkstat5 == 0, 0),
     
     # employment status
     employed2 = if_else(empstat2 == 0, employed1, if_else(curjob2 %in% c(2, 3), 1, 0)), 
@@ -131,8 +397,17 @@ mesa <-
       start_lipmed == 1 & lipid5c == 1 ~ e15dyc,
       TRUE ~ NA_real_
     ),
+    start_lipmed_time_alt = case_when(
+      start_lipmed == 1 & lipid2c == 1 ~ 1,
+      start_lipmed == 1 & lipid3c == 1 ~ e12dyc + 1,
+      start_lipmed == 1 & lipid4c == 1 ~ e13dyc + 1,
+      start_lipmed == 1 & lipid5c == 1 ~ e14dyc + 1,
+      TRUE ~ NA_real_
+    ),
     secondary_lipmed = if_else(cvda == 1 & start_lipmed_time >= cvdatt, 1, 0),
+    secondary_lipmed_alt = if_else(cvda == 1 & start_lipmed_time_alt >= cvdatt, 1, 0),
     primary_lipmed = if_else(start_lipmed == 1 & secondary_lipmed == 0, 1, 0),
+    primary_lipmed_alt = if_else(start_lipmed == 1 & secondary_lipmed_alt == 0, 1, 0),
       
     # indicator for whether subject initiated hypertensive therapy over follow up
     start_bpmed = pmax(htnmed2c, htnmed3c, htnmed4c, htnmed5c, na.rm = TRUE),
@@ -170,8 +445,7 @@ mesa <-
       TRUE ~ NA_real_
     ),
     secondary_aspmed = if_else(cvda == 1 & start_aspmed_time >= cvdatt, 1, 0),
-    primary_aspmed = if_else(start_aspmed == 1 & secondary_aspmed == 0, 1, 0),
-    
+    primary_aspmed = if_else(start_aspmed == 1 & secondary_aspmed == 0, 1, 0)
   )
 
 # rename variables prior to dropping
@@ -188,48 +462,19 @@ mesa <-
 mesa <-
   mesa %>%
   select(
-    -starts_with("rwinewk"),
-    -starts_with("wwinewk"),
-    -starts_with("beerwk"),
-    -starts_with("liqwk"),
-    -matches("^q[0-9]+"),
-    -starts_with("empstat"),
-    -starts_with("curjob"),
-    -alcwk1c,
-    -alcohol1,
-    -aspirin1,
-    -bcpills1,
-    -educ1,
-    -exercm1c,
-    -race1c,
-    -marital1,
-    -mnpause1,
-    -pmi1,
-    -preg1,
-    -pstk1,
-    -shrtatt1,
-    -sstk1,
-    -chrtatt1,
-    -cstk1
-  )
-
-baseline_vars <- mesa %>% select(matches(".*1c?$")) %>% names()
-
-
-# create long version -----------------------------------------------------
-
-# pivot to longer format
-mesa_long <- 
-  mesa %>%
-  pivot_longer(
-    cols = matches(".*[2-5]c?$"),
-    names_to = c("variable", "exam"),
-    names_pattern = "(.*)([2-5])"
-  ) %>%
-  pivot_wider(
-    names_from = "variable", 
-    values_from = "value"
-  )
+    mesaid,
+    all_of(time_vars_wide),
+    cvdatt,
+    cvda,
+    all_of(baseline_vars),
+    all_of(ref_vars),
+    all_of(tv_vars_wide),
+    prebase,
+    lipid1c,
+    starts_with("primary_"),
+    starts_with("secondary_"),
+    starts_with("start_")
+  ) 
 
 
 # clean outcomes ----------------------------------------------------------

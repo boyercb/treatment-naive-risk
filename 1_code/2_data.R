@@ -66,6 +66,7 @@ exam1_vars <- c(
   "chrtatt1",   # family history of MI: child
   "cstk1",      # family history of stroke: child
   
+  "diabins1",   # insulin or oral hypoglycemics
   "anydep1c",   # any anti-depressant
   "anara1c",    # any anti-arrythmic
   "vasoda1c",   # any vasodilator
@@ -115,6 +116,7 @@ exam2_vars <- c(
   "asacat2c",   # aspirin use
   "lipid2c",    # lipid-lowering meds
   "htnmed2c",   # anti-hypertensive meds
+  "diabins2",   # insulin or oral hypoglycemics
   "wtls2c",     # any weight loss drugs
   "diur2c",     # any diuretic
   "anydep2c",   # any anti-depressant
@@ -124,7 +126,9 @@ exam2_vars <- c(
   "curjob2",    # employment status
   "income2",    # income
   "hinone2",    # no health insurance
+  "smkstat2",   # smoking status
   "cursmk2",    # current cigarette smoker
+  "curalc2",    # drinking status
   "rwinewk2",   # glasses of red wine per week
   "wwinewk2",   # glasses of white wine per week
   "beerwk2",    # beers per week

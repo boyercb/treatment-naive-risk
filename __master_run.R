@@ -13,9 +13,15 @@ source("1_code/5_imputations.R")
 
 source("1_code/6_target_trial.R")
 
-source("1_code/7_main_analysis.R")
+source("1_code/7_baseline_distributions.R")
+
+source("1_code/8_main_analysis.R")
+
+source("1_code/9_counterfactual_risk.R")
 
 source("1_code/X1_sensitivity.R")
+
+source("1_code/X2_simulations.R")
 
 
 

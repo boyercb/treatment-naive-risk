@@ -4,7 +4,10 @@
 
 mesa <- 
   mesa %>%
-  mutate(exercise4 = exercise3)
+  mutate(
+    exercise4 = exercise3
+   )
+
 
 # create target trials  ---------------------------------------------------
 
@@ -36,7 +39,17 @@ trial1 <-
     hdl = hdl1,
     trig = trig1,
     dpw = dpw1,
-    exercise = exercise1
+    exercise = exercise1,
+    risk = ascvd_10yr_frs(
+      gender = if_else(gender1 == 1, "female", "male"), 
+      age = age1c,
+      totchol = chol1, 
+      hdl = hdl1, 
+      sbp = sbp1c,
+      bp_med = htnmed1c, 
+      smoker = cursmk1, 
+      diabetes = dm032c
+    )
   ) 
 
 # trial 2: follow-up starts at exam 3, but still ends 10-years after exam 2
@@ -67,7 +80,17 @@ trial2 <-
     hdl = hdl2,
     trig = trig2,
     dpw = dpw2,
-    exercise = exercise2
+    exercise = exercise2,
+    risk = ascvd_10yr_frs(
+      gender = if_else(gender1 == 1, "female", "male"), 
+      age = age2c,
+      totchol = chol2, 
+      hdl = hdl2, 
+      sbp = sbp2c,
+      bp_med = htnmed2c, 
+      smoker = cursmk2, 
+      diabetes = dm032c
+    )
   ) 
 
 # trial 3: follow-up starts at exam 4, but still ends 10-years after exam 2
@@ -98,7 +121,17 @@ trial3 <-
     hdl = hdl3,
     trig = trig3,
     dpw = dpw3,
-    exercise = exercise3
+    exercise = exercise3,
+    risk = ascvd_10yr_frs(
+      gender = if_else(gender1 == 1, "female", "male"), 
+      age = age3c,
+      totchol = chol3, 
+      hdl = hdl3, 
+      sbp = sbp3c,
+      bp_med = htnmed3c, 
+      smoker = cursmk3, 
+      diabetes = dm033c
+    )
   ) 
 
 # trial 4: follow-up starts at exam 5, but still ends 10-years after exam 2
@@ -129,7 +162,17 @@ trial4 <-
     hdl = hdl4,
     trig = trig4,
     dpw = dpw4,
-    exercise = exercise3
+    exercise = exercise4,
+    risk = ascvd_10yr_frs(
+      gender = if_else(gender1 == 1, "female", "male"), 
+      age = age4c,
+      totchol = chol4, 
+      hdl = hdl4, 
+      sbp = sbp4c,
+      bp_med = htnmed4c, 
+      smoker = cursmk4, 
+      diabetes = dm034c
+    )
   ) 
 
 
@@ -138,13 +181,19 @@ trial4 <-
 # stack trials together
 trials <- 
   bind_rows(trial1, trial2, trial3, trial4, .id = "trial") %>%
+  mutate(
+    trial2 = if_else(trial == 2, 1, 0),
+    trial3 = if_else(trial == 3, 1, 0),
+    trial4 = if_else(trial == 4, 1, 0)
+  ) %>%
   select(
-    trial,
+    starts_with("trial"),
     mesaid,
     tx,
     all_of(baseline_vars),
     all_of(tv_vars),
     cursmk,
+    risk,
     race_white1,
     educ_pri1,
     cvdatt,
@@ -199,7 +248,7 @@ create_long_trial <- function(data, exam_no) {
       counts = if_else(exam == last(exam), cvdatt - time, lead(time, 1) - time),
       
       # lags
-      across(tv_vars, list(lag1 = lag), n = 1, default = -999, .names = "{.fn}_{.col}"), 
+      across(all_of(c(tv_vars, "chol")), list(lag1 = lag), n = 1, default = -999, .names = "{.fn}_{.col}"), 
       lag1_age = if_else(lag1_age == -999, age1c, lag1_age),
       lag1_dm03 = if_else(lag1_dm03 == -999, dm031c, lag1_dm03),
       lag1_htn = if_else(lag1_htn == -999, htn1c, lag1_htn),
@@ -215,6 +264,7 @@ create_long_trial <- function(data, exam_no) {
       lag1_hinone = if_else(lag1_hinone == -999, hinone1, lag1_hinone),
       lag1_sbp = if_else(lag1_sbp == -999, sbp1c, lag1_sbp),
       lag1_dbp = if_else(lag1_dbp == -999, dbp1c, lag1_dbp),
+      lag1_chol = if_else(lag1_chol == -999, chol1, lag1_chol),
       lag1_ldl = if_else(lag1_ldl == -999, ldl1, lag1_ldl),
       lag1_hdl = if_else(lag1_hdl == -999, hdl1, lag1_hdl),
       lag1_trig = if_else(lag1_trig == -999, trig1, lag1_trig), 
@@ -239,6 +289,7 @@ create_long_trial <- function(data, exam_no) {
       bl_hinone = first(lag1_hinone),
       bl_sbp = first(lag1_sbp),
       bl_dbp = first(lag1_dbp),
+      bl_chol = first(lag1_chol),
       bl_ldl = first(lag1_ldl),
       bl_hdl = first(lag1_hdl),
       bl_trig = first(lag1_trig), 
@@ -263,7 +314,17 @@ create_long_trial <- function(data, exam_no) {
       lag1_hdl = replace(lag1_hdl, exam == exam_no, 0),
       lag1_trig = replace(lag1_trig, exam == exam_no, 0),
       lag1_dpw = replace(lag1_dpw, exam == exam_no, 0),
-      lag1_exercise = replace(lag1_exercise, exam == exam_no, 0)
+      lag1_exercise = replace(lag1_exercise, exam == exam_no, 0),
+      risk = ascvd_10yr_frs(
+        gender = if_else(gender1 == 1, "female", "male"), 
+        age = bl_age,
+        totchol = bl_chol, 
+        hdl = bl_hdl, 
+        sbp = bl_sbp,
+        bp_med = bl_htnmed, 
+        smoker = bl_cursmk, 
+        diabetes = bl_dm03
+      )
     ) %>%
     ungroup()
 }
@@ -279,21 +340,21 @@ trial1_long <-
 # trial 2: follow-up starts at exam 3, but still ends 10-years after exam 2
 trial2_long <-
   mesa %>%
-  filter(pmax(lipid1c, lipid2c, na.rm = TRUE) == 0 & cvdatt > time3 & !is.na(time2)) %>%
+  filter(pmax(lipid1c, lipid2c, na.rm = TRUE) == 0 & cvdatt > time3) %>%
   mutate(tx = lipid3c) %>%
   create_long_trial(exam_no = 3)
 
 # trial 3: follow-up starts at exam 4, but still ends 10-years after exam 2
 trial3_long <-
   mesa %>%
-  filter(pmax(lipid1c, lipid2c, lipid3c, na.rm = TRUE) == 0 & cvdatt > time4 & !is.na(time2)) %>%
+  filter(pmax(lipid1c, lipid2c, lipid3c, na.rm = TRUE) == 0 & cvdatt > time4) %>%
   mutate(tx = lipid4c) %>%
   create_long_trial(exam_no = 4)
 
 # trial 4: follow-up starts at exam 5, but still ends 10-years after exam 2
 trial4_long <-
   mesa %>%
-  filter(pmax(lipid1c, lipid2c, lipid3c, lipid4c, na.rm = TRUE) == 0 &  cvdatt > time5 & !is.na(time2)) %>%
+  filter(pmax(lipid1c, lipid2c, lipid3c, lipid4c, na.rm = TRUE) == 0 &  cvdatt > time5) %>%
   mutate(tx = lipid5c) %>%
   create_long_trial(exam_no = 5)
 
@@ -303,8 +364,13 @@ trial4_long <-
 # stack trials together
 trials_long <- 
   bind_rows(trial1_long, trial2_long, trial3_long, trial4_long, .id = "trial") %>%
+  mutate(
+    trial2 = if_else(trial == 2, 1, 0),
+    trial3 = if_else(trial == 3, 1, 0),
+    trial4 = if_else(trial == 4, 1, 0)
+  ) %>%
   select(
-    trial,
+    starts_with("trial"),
     mesaid,
     exam,
     counts,
@@ -315,6 +381,7 @@ trials_long <-
     all_of(tv_vars),
     starts_with("lag"),
     cursmk,
+    risk,
     race_white1,
     educ_pri1,
     cvdatt,
@@ -326,11 +393,10 @@ trials_long <-
   trials_long %>%
   group_by(trial, mesaid) %>%
   mutate(
-    id = factor(str_c(trial, mesaid, sep = "_")), 
+    id = str_c(trial, mesaid, sep = "_"), 
     exam = as.numeric(exam),
     drop = exam >= min(if_else(tx == 1 & lipid == 0 | tx == 0 & lipid == 1, exam, 10))
   ) %>%
-  #select(trial, mesaid, exam, tx, lipid, censor)
   mutate(
     censor = max(as.numeric(drop)),
     cvda = replace(cvda, censor == 1, 0)

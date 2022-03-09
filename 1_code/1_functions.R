@@ -9,6 +9,8 @@ get_data <- function(path) {
   }
 }
 
+specd <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
 
 # simulation functions ----------------------------------------------------
 
@@ -102,8 +104,149 @@ generate_snaftm <-
 }
 
 
+
+# custom modelsummary tidiers ---------------------------------------------
+
+tidy.custom <- function (x, conf.int = FALSE, conf.level = 0.95, conf.method = "wald", exponentiate = TRUE, 
+                         ...) 
+{
+  ret <- as_tibble(summary.glm(x)$coefficients, rownames = "term")
+  colnames(ret) <- c("term", "estimate", "std.error", "statistic", 
+                     "p.value")
+  coefs <- tibble::enframe(stats::coef(x), name = "term", 
+                           value = "estimate")
+  ret <- dplyr::left_join(coefs, ret, by = c("term", "estimate"))
+  if (conf.int) {
+    if(conf.method == "plik") 
+      ci <- suppressMessages(confint(x, ...))
+    else
+      ci <- suppressMessages(confint.default(x, ...))
+    
+    if (is.null(dim(ci))) {
+      ci <- matrix(ci, nrow = 1)
+      rownames(ci) <- names(coef(x))[1]
+    }
+    
+    ci <- as_tibble(ci, rownames = "term")
+    names(ci) <- c("term", "conf.low", "conf.high")
+    ret <- dplyr::left_join(ret, ci, by = "term")
+  }
+  if (exponentiate) {
+    ret <- mutate_at(ret, vars(estimate), exp)
+    if ("conf.low" %in% colnames(ret)) {
+      ret <- mutate_at(ret, vars(conf.low, conf.high), exp)
+    }
+  }
+  # ret <- mutate(ret, across(where(is.numeric), round, 2))
+  ret
+}
+
+glance.custom <- function(x, ...) {
+  out <- broom:::as_glance_tibble(null.deviance = x$null.deviance, df.null = x$df.null, 
+                                  logLik = as.numeric(stats::logLik(x)), AIC = stats::AIC(x), 
+                                  BIC = stats::BIC(x), deviance = stats::deviance(x), 
+                                  df.residual = stats::df.residual(x), nobs = stats::nobs(x), 
+                                  na_types = "rirrrrii")
+  return(out)
+}
+
+
 # g-methods ---------------------------------------------------------------
 
+coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data, center = FALSE) {
+  
+  # treatment models: denominator
+  denominator_model_at <- glm(
+    formula = denominator,
+    family = binomial(link = "logit"),
+    data = data[data[[treatment]] == 1, ]
+  )
+  
+  denominator_model_nt <- glm(
+    formula = denominator,
+    family = binomial(link = "logit"),
+    data = data[data[[treatment]] == 0, ]
+  )
+  
+  # treatment models: numerator
+  if (!is.null(numerator)) {
+    stopifnot(all.vars(numerator)[1] == all.vars(denominator)[1])
+    numerator_model_at <- glm(
+      formula = numerator,
+      family = binomial(link = "logit"),
+      data = data[data[[treatment]] == 1, ]
+    )
+    
+    numerator_model_nt <- glm(
+      formula = numerator,
+      family = binomial(link = "logit"),
+      data = data[data[[treatment]] == 0, ]
+    )
+  }
+  
+  censor <- all.vars(denominator)[1]
+  
+  # get predictions
+  p_num_at <- 1 - predict(numerator_model_at, newdata = data, type = "response")
+  p_num_nt <- 1 - predict(numerator_model_nt, newdata = data, type = "response")
+  p_den_at <- 1 - predict(denominator_model_at, newdata = data, type = "response")
+  p_den_nt <- 1 - predict(denominator_model_nt, newdata = data, type = "response")
+  
+  # add to dataset
+  data <- dplyr::mutate(
+    data, 
+    p_num = dplyr::if_else(.data[[treatment]] == 1,  p_num_at, p_num_nt),
+    p_den = dplyr::if_else(.data[[treatment]] == 1,  p_den_at, p_den_nt)
+  )
+  
+  # calculate cumulative product
+  data <- dplyr::group_by(data, .data[[id]]) 
+  
+  data <- dplyr::mutate(
+    data, 
+      p_num = dplyr::if_else(
+        .data[[censor]] == 1, 
+        1 - p_num * cumprod(dplyr::lag(p_num, 1, default = 1)),
+        p_num * cumprod(dplyr::lag(p_num, 1, default = 1))
+      ),
+      p_den = dplyr::if_else(
+        .data[[censor]] == 1, 
+        1 - p_den * cumprod(dplyr::lag(p_den, 1, default = 1)),
+        p_den * cumprod(dplyr::lag(p_den, 1, default = 1))
+      ),
+      ipw = p_num / p_den
+    )
+  
+  data <- dplyr::ungroup(data)
+  
+  if (!is.list(msm)) {
+    msm <- list(msm)
+  }
+  
+  msm_model <- lapply(msm, function (x) {
+    glm(
+      formula = x,
+      family = binomial(link = "logit"),
+      weights = ipw,
+      data = data
+    )
+  })
+  
+  ret <- list(
+    "msm" = msm_model,
+    "denominator" = list(
+      "at" = denominator_model_at,
+      "nt" = denominator_model_nt
+    ),
+    "numerator" = list(
+      "at" = numerator_model_at,
+      "nt" = numerator_model_nt
+    ),
+    "ipw" = data$ipw
+  )
+  
+  return(ret)
+}
 
 snaftm <- function() {
   

@@ -26,9 +26,15 @@ baseline_vars <- c(
   "famhist1",
   "agatpm1c",
   "ecglvh1c",
-  "afib1c",
   "crp1",
   "il61"
+)
+
+log_transform <- c(
+  "agatpm1c",
+  "crp1",
+  "il61",
+  "exercise"
 )
 
 baseline_vars_long <- c(
@@ -238,6 +244,32 @@ time_vars_wide <- c(
 ref_vars <- c(
   "race_white1",
   "educ_pri1"
+)
+
+cont_vars <- c(
+  "cesd1c", 
+  "chrbu61c", 
+  "discry1c",
+  "emot1c",
+  "hassl1c",
+  "splang1c",
+  "splanx1c",
+  "pregn1", 
+  "bpillyr1",
+  "menoage1",
+  "nprob1c",
+  "agatpm1c",
+  "crp1",
+  "il61",
+  "age",
+  "waistcm",
+  "sbp", 
+  "dbp",
+  "ldl",
+  "hdl",
+  "trig",
+  "dpw",
+  "exercise"
 )
 
 

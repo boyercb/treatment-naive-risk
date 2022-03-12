@@ -240,8 +240,6 @@ create_long_trial <- function(data, exam_no) {
       # change time to person months
       time = round(time / (365/12)),
       
-      counts = if_else(exam == last(exam), cvdatt - time, lead(time, 1) - time),
-      
       # lags
       across(all_of(c(tv_vars, "chol", "lipid")), list(lag1 = lag), n = 1, default = -999, .names = "{.fn}_{.col}"), 
       lag1_age = if_else(lag1_age == -999, age1c, lag1_age),
@@ -270,6 +268,7 @@ create_long_trial <- function(data, exam_no) {
     filter(time < cvdatt) %>%
     filter(exam >= exam_no) %>%
     mutate(
+      counts = if_else(exam == last(exam), cvdatt - time, lead(time, 1) - time),
       bl_age = first(age),
       bl_dm03 = first(lag1_dm03),
       bl_htn = first(lag1_htn),

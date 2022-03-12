@@ -129,7 +129,7 @@ baseline_table <-
       name == "crp1" ~ "C-reactive protein",
       name == "il61" ~ "Interleukin-6",
       name == "age" ~ "Age, years",
-      name == "risk" ~ "Baseline ASCVD risk (Framingham)",
+      name == "risk" ~ "Baseline ASCVD risk",
       name == "dm03" ~ "Diabetes mellitus, %",
       name == "htn" ~ "Hypertension",
       name == "waistcm" ~ "Waist circumference, cm",

@@ -39,18 +39,21 @@ trial1 <-
     hdl = hdl1,
     trig = trig1,
     dpw = dpw1,
-    exercise = exercise1,
-    risk = ascvd_10yr_frs(
-      gender = if_else(gender1 == 1, "female", "male"), 
-      age = age1c,
-      totchol = chol1, 
-      hdl = hdl1, 
-      sbp = sbp1c,
-      bp_med = htnmed1c, 
-      smoker = cursmk1, 
-      diabetes = dm032c
-    )
+    chol = chol1,
+    exercise = exercise1
   ) 
+
+coxfit <- coxph(
+  formula = Surv(cvdatt, cvda) ~ gender1 + age + I(age^2) + sbp + chol + hdl + 
+    htnmed + cursmk + dm03 + age:sbp + age:chol + age:hdl + age:cursmk + htnmed:sbp,
+  data = trial1
+)
+
+trial1 <- 
+  trial1 %>%
+  mutate(
+    risk = compute_risk_score(coxfit, trial1, time = 120)
+  )
 
 # trial 2: follow-up starts at exam 3, but still ends 10-years after exam 2
 trial2 <-
@@ -80,18 +83,16 @@ trial2 <-
     hdl = hdl2,
     trig = trig2,
     dpw = dpw2,
-    exercise = exercise2,
-    risk = ascvd_10yr_frs(
-      gender = if_else(gender1 == 1, "female", "male"), 
-      age = age2c,
-      totchol = chol2, 
-      hdl = hdl2, 
-      sbp = sbp2c,
-      bp_med = htnmed2c, 
-      smoker = cursmk2, 
-      diabetes = dm032c
-    )
+    chol = chol2,
+    exercise = exercise2
   ) 
+
+trial2 <- 
+  trial2 %>%
+  mutate(
+    risk = compute_risk_score(coxfit, trial2, time = 120)
+  )
+
 
 # trial 3: follow-up starts at exam 4, but still ends 10-years after exam 2
 trial3 <-
@@ -121,18 +122,15 @@ trial3 <-
     hdl = hdl3,
     trig = trig3,
     dpw = dpw3,
-    exercise = exercise3,
-    risk = ascvd_10yr_frs(
-      gender = if_else(gender1 == 1, "female", "male"), 
-      age = age3c,
-      totchol = chol3, 
-      hdl = hdl3, 
-      sbp = sbp3c,
-      bp_med = htnmed3c, 
-      smoker = cursmk3, 
-      diabetes = dm033c
-    )
+    chol = chol3,
+    exercise = exercise3
   ) 
+
+trial3 <- 
+  trial3 %>%
+  mutate(
+    risk = compute_risk_score(coxfit, trial3, time = 120)
+  )
 
 # trial 4: follow-up starts at exam 5, but still ends 10-years after exam 2
 trial4 <-
@@ -162,18 +160,15 @@ trial4 <-
     hdl = hdl4,
     trig = trig4,
     dpw = dpw4,
+    chol = chol4,
     exercise = exercise4,
-    risk = ascvd_10yr_frs(
-      gender = if_else(gender1 == 1, "female", "male"), 
-      age = age4c,
-      totchol = chol4, 
-      hdl = hdl4, 
-      sbp = sbp4c,
-      bp_med = htnmed4c, 
-      smoker = cursmk4, 
-      diabetes = dm034c
-    )
   ) 
+
+trial4 <- 
+  trial4 %>%
+  mutate(
+    risk = compute_risk_score(coxfit, trial4, time = 120)
+  )
 
 
 # combine nested trials into single dataset -------------------------------
@@ -212,7 +207,7 @@ trials_pt <-
 # set up nested target trials ---------------------------------------------
 
 create_long_trial <- function(data, exam_no) {
-  data %>%
+  lt <- data %>%
     pivot_longer(
       cols = matches(".*[2-5]c?$"),
       names_to = c("variable", "exam"),
@@ -248,7 +243,7 @@ create_long_trial <- function(data, exam_no) {
       counts = if_else(exam == last(exam), cvdatt - time, lead(time, 1) - time),
       
       # lags
-      across(all_of(c(tv_vars, "chol")), list(lag1 = lag), n = 1, default = -999, .names = "{.fn}_{.col}"), 
+      across(all_of(c(tv_vars, "chol", "lipid")), list(lag1 = lag), n = 1, default = -999, .names = "{.fn}_{.col}"), 
       lag1_age = if_else(lag1_age == -999, age1c, lag1_age),
       lag1_dm03 = if_else(lag1_dm03 == -999, dm031c, lag1_dm03),
       lag1_htn = if_else(lag1_htn == -999, htn1c, lag1_htn),
@@ -265,6 +260,7 @@ create_long_trial <- function(data, exam_no) {
       lag1_sbp = if_else(lag1_sbp == -999, sbp1c, lag1_sbp),
       lag1_dbp = if_else(lag1_dbp == -999, dbp1c, lag1_dbp),
       lag1_chol = if_else(lag1_chol == -999, chol1, lag1_chol),
+      lag1_lipid = if_else(lag1_lipid == -999, lipid1c, lag1_lipid),
       lag1_ldl = if_else(lag1_ldl == -999, ldl1, lag1_ldl),
       lag1_hdl = if_else(lag1_hdl == -999, hdl1, lag1_hdl),
       lag1_trig = if_else(lag1_trig == -999, trig1, lag1_trig), 
@@ -314,19 +310,27 @@ create_long_trial <- function(data, exam_no) {
       lag1_hdl = replace(lag1_hdl, exam == exam_no, 0),
       lag1_trig = replace(lag1_trig, exam == exam_no, 0),
       lag1_dpw = replace(lag1_dpw, exam == exam_no, 0),
-      lag1_exercise = replace(lag1_exercise, exam == exam_no, 0),
-      risk = ascvd_10yr_frs(
-        gender = if_else(gender1 == 1, "female", "male"), 
-        age = bl_age,
-        totchol = bl_chol, 
-        hdl = bl_hdl, 
-        sbp = bl_sbp,
-        bp_med = bl_htnmed, 
-        smoker = bl_cursmk, 
-        diabetes = bl_dm03
-      )
+      lag1_exercise = replace(lag1_exercise, exam == exam_no, 0)
     ) %>%
     ungroup()
+  
+  lt <- lt %>%
+    mutate(
+      risk = compute_risk_score(
+        coxfit, 
+        newdata = data.frame(
+          gender1 = lt$gender1,
+          age = lt$bl_age,
+          chol = lt$bl_chol, 
+          hdl = lt$bl_hdl, 
+          sbp = lt$bl_sbp,
+          htnmed = lt$bl_htnmed, 
+          cursmk = lt$bl_cursmk, 
+          dm03 = lt$bl_dm03
+        ), 
+        time = 120
+      )  
+    )
 }
 
 # trial 1: follow-up starts at exam 2 and ends 10-years later

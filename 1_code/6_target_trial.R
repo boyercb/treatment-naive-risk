@@ -17,8 +17,8 @@ trial1 <-
   filter(lipid1c == 0 & cvdatt > time2) %>%
   mutate(
     tx = lipid2c,
-    cvda = replace(cvda, cvdatt - time2 > 3650, 0),
-    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3650, 3650),
+    cvda = replace(cvda, cvdatt - time2 > 3652, 0),
+    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
     cvdatt = round(cvdatt / (365/12)),
     age = age2c,
     cursmk = cursmk1,
@@ -58,8 +58,8 @@ trial2 <-
   filter(pmax(lipid1c, lipid2c, na.rm = TRUE) == 0 & cvdatt > time3 & !is.na(time2)) %>%
   mutate(
     tx = lipid3c,
-    cvda = replace(cvda, cvdatt - time2 > 3650, 0),
-    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3650, 3650),
+    cvda = replace(cvda, cvdatt - time2 > 3652, 0),
+    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
     cvdatt = round((cvdatt - (time3 - time2)) / (365/12)),
     age = age3c,
     cursmk = cursmk2,
@@ -99,8 +99,8 @@ trial3 <-
   filter(pmax(lipid1c, lipid2c, lipid3c, na.rm = TRUE) == 0 & cvdatt > time4 & !is.na(time2)) %>%
   mutate(
     tx = lipid4c,
-    cvda = replace(cvda, cvdatt - time2 > 3650, 0),
-    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3650, 3650),
+    cvda = replace(cvda, cvdatt - time2 > 3652, 0),
+    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
     cvdatt = round((cvdatt - (time4 - time2)) / (365/12)),
     age = age4c,
     cursmk = cursmk3,
@@ -140,8 +140,8 @@ trial4 <-
   filter(pmax(lipid1c, lipid2c, lipid3c, lipid4c, na.rm = TRUE) == 0 &  cvdatt > time5 & !is.na(time2)) %>%
   mutate(
     tx = lipid5c,
-    cvda = replace(cvda, cvdatt - time2 > 3650, 0),
-    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3650, 3650),
+    cvda = replace(cvda, cvdatt - time2 > 3652, 0),
+    cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
     cvdatt = round((cvdatt - (time5 - time2)) / (365/12)),
     age = age5c,
     cursmk = cursmk4,
@@ -231,9 +231,9 @@ create_long_trial <- function(data, exam_no) {
       cvdatt = cvdatt - first(time),
       
       # administratively censor at 10-years
-      cvda = replace(cvda, cvdatt > 3650, 0),
-      cvdatt = replace(cvdatt, cvdatt > 3650, 3650),
-      cvdatt_alt = replace(cvdatt_alt, cvdatt_alt > 3650, 3650),
+      cvda = replace(cvda, cvdatt > 3652, 0),
+      cvdatt = replace(cvdatt, cvdatt > 3652, 3652),
+      cvdatt_alt = replace(cvdatt_alt, cvdatt_alt > 3652, 3652),
       
       # change to person-months
       cvdatt = round(cvdatt / (365/12)),

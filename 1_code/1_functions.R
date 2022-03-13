@@ -170,7 +170,11 @@ glance.snaftm <- function(x, ...) {
 
 # g-methods ---------------------------------------------------------------
 
-coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data, center = FALSE) {
+
+# ipcw --------------------------------------------------------------------
+
+
+ipcw <- function(formula, treatment, numerator = NULL, denominator, id, time, data, center = FALSE) {
   
   # treatment models: denominator
   denominator_model_at <- glm(
@@ -231,26 +235,26 @@ coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data
         1 - p_den * cumprod(dplyr::lag(p_den, 1, default = 1)),
         p_den * cumprod(dplyr::lag(p_den, 1, default = 1))
       ),
-      ipw = p_num / p_den
+      ipcw = p_num / p_den
     )
   
   data <- dplyr::ungroup(data)
   
-  if (!is.list(msm)) {
-    msm <- list(msm)
+  if (!is.list(formula)) {
+    formula <- list(formula)
   }
   
-  msm_model <- lapply(msm, function (x) {
+  ipcw_model <- lapply(formula, function (x) {
     glm(
       formula = x,
       family = binomial(link = "logit"),
-      weights = ipw,
+      weights = ipcw,
       data = data
     )
   })
   
   ret <- list(
-    "msm" = msm_model,
+    "fit" = ipcw_model,
     "denominator" = list(
       "at" = denominator_model_at,
       "nt" = denominator_model_nt
@@ -259,7 +263,7 @@ coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data
       "at" = numerator_model_at,
       "nt" = numerator_model_nt
     ),
-    "ipw" = data$ipw
+    "ipcw" = data$ipcw
   )
   
   return(ret)

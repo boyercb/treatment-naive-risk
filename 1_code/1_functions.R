@@ -248,10 +248,212 @@ coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data
   return(ret)
 }
 
-snaftm <- function() {
+
+# structural nested accelerated failure time models -----------------------
+
+H <- function(psi, data, id, time, eventtime) {
+  H.psi <- by(data, data[, id], function(d) {
+    x <- d[,!colnames(d) %in% c(id, time, eventtime)]
+    tv <- c(d[, time], max(d[, eventtime]))[-1] - d[, time]
+    
+    if (is.vector(x)) {
+      sum(tv * exp(x * psi)) - c(0, cumsum(tv * exp(x * psi)))[1:length(x)]
+    } else {
+      x <- as.matrix(x)
+      sum(tv * exp(x %*% psi)) - c(0, cumsum(tv * exp(x %*% psi)))[1:nrow(x)]
+    }
+  },
+  simplify = FALSE)
   
+  H.psi <- unsplit(H.psi, data[, id])
+  return(H.psi)
 }
 
+K <- function(psi, x1, time, Kmax) {
+  ifelse((x1 %*% psi) < 0,
+         (Kmax - time) * exp(x1 %*% psi),
+         Kmax - time)
+}
+
+delta <- function(H.psi, K.psi, event) {
+  ifelse(event == 0, 0, ifelse(H.psi < K.psi, 1, 0))
+}
+
+snaftm <- function(
+  rpsm,
+  formula,
+  family,
+  data,
+  id = NULL,
+  time = NULL,
+  Kmax = 120,
+  psi.range = c(-2, 2),
+  psi.values = NULL
+) {
+  
+  # extract treatment variable
+  A.var <- all.vars(formula)[1]
+  
+  # remove intercept from formula for rpsm
+  rpsm <- update(rpsm, ~ . - 1)
+  
+  mf <- model.frame(rpsm, data)
+  
+  # get survival time and status
+  survtime <- mf[, 1][, 1]
+  survstat <- mf[, 1][, 2]
+  
+  # get rpsm model matrix with time
+  mat <- model.matrix(update(rpsm, paste0("~ . + ", time, " + ", id)), data) 
+  mat <- cbind(mat, "survtime" = survtime)
+  
+  # set all A to 1 for K
+  d <- data
+  d[[A.var]] <- 1
+  x1 <- model.matrix(rpsm, d)
+  
+  n <- nrow(data)
+  rpsm.dim <- ncol(x1)
+  
+  # get treatment vector
+  A <- mf[[A.var]]
+  
+  # fit treatment model E[A | L] 
+  A.fit <- glm(formula, family, data)
+  A.hat <- predict(A.fit, data, type = "response")
+
+  # define estimating equation
+  eefun <- function(psi) {
+  
+    H.psi <- H(psi, mat, id, time, "survtime")
+    K.psi <- K(psi, x1, data[[time]], Kmax)
+    delta.psi <- delta(H.psi, K.psi, survstat)
+  
+    smat <- delta.psi * (A - A.hat)
+    sval <- sum(smat, na.rm = TRUE)
+    save <- sval / n
+    smat <- smat - rep(save, n)
+    
+    # covariance
+    sigma <- t(smat) %*% smat
+    if (sigma == 0) {
+      sigma <- 1e-16
+    }
+    
+    return(sval * solve(sigma) * t(sval))
+  }
+  
+  if (rpsm.dim == 1) {
+    res <- optimize(eefun, interval = psi.range)
+    psi1 <- res$minimum
+    objfunc <- as.numeric(res$objective)
+  } else {
+    res <- optim(psi.values, eefun)
+  }
+  
+  if (rpsm.dim == 1) {
+    # Use simple bisection method to find estimates of lower and upper 95% confidence bounds
+    increm <- 0.1
+    for_conf <- function(x){
+      return(eefun(x) - 3.84)
+    }
+    
+    if (objfunc < 3.84) {
+      # Find estimate of where sumeef(x) > 3.84
+      
+      # Lower bound of 95% CI
+      psilow <- psi1
+      testlow <- objfunc
+      countlow <- 0
+      while (testlow < 3.84 & countlow < 100){
+        psilow <- psilow - increm
+        testlow <- eefun(psilow)
+        countlow <- countlow + 1
+      }
+      
+      # Upper bound of 95% CI
+      psihigh <- psi1
+      testhigh <- objfunc
+      counthigh <- 0
+      while (testhigh < 3.84 & counthigh < 100) {
+        psihigh <- psihigh + increm
+        testhigh <- eefun(psihigh)
+        counthigh <- counthigh + 1
+      }
+      
+      # Better estimate using bisection method
+      if ((testhigh > 3.84) & (testlow > 3.84)) {
+        
+        # Bisection method
+        left <- psi1
+        fleft <- objfunc - 3.84
+        right <- psihigh
+        fright <- testhigh - 3.84
+        middle <- (left  + right) / 2
+        fmiddle <- for_conf(middle)
+        count <- 0
+        diff <- right - left
+        
+        while (!(abs(fmiddle) < 0.0001 | diff < 0.0001 | count > 100)) {
+          test <- fmiddle * fleft
+          if (test < 0){
+            right <- middle
+            fright <- fmiddle
+          } else {
+            left <- middle
+            fleft <- fmiddle
+          }
+          middle <- (left + right) / 2
+          fmiddle <- for_conf(middle)
+          count <- count + 1
+          diff <- right - left
+        }
+        
+        psi_high <- middle
+        objfunc_high <- fmiddle + 3.84
+        
+        # lower bound of 95% CI
+        left <- psilow
+        fleft <- testlow - 3.84
+        right <- psi1
+        fright <- objfunc - 3.84
+        middle <- (left + right) / 2
+        fmiddle <- for_conf(middle)
+        count <- 0
+        diff <- right - left
+        
+        while(!(abs(fmiddle) < 0.0001 | diff < 0.0001 | count > 100)) {
+          test <- fmiddle * fleft
+          if (test < 0){
+            right <- middle
+            fright <- fmiddle
+          } else {
+            left <- middle
+            fleft <- fmiddle
+          }
+          middle <- (left + right) / 2
+          fmiddle <- for_conf(middle)
+          diff <- right - left
+          count <- count + 1
+        }
+        psi_low <- middle
+        objfunc_low <- fmiddle + 3.84
+        psi <- psi1
+        
+      }
+    }
+    
+    ret <- data.frame(
+      term = A.var,
+      estimate = psi,
+      conf.low = psi_low,
+      conf.high = psi_high
+    )
+    return(ret)
+  } else {
+    return(res)
+  }
+}
 sncftm <- function() {
   
 }

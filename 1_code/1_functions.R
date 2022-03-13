@@ -151,6 +151,23 @@ glance.custom <- function(x, ...) {
 }
 
 
+tidy.snaftm <- function (x, exponentiate = TRUE, ...) {
+  if (exponentiate) {
+    mutate_at(x, vars(estimate, conf.low, conf.high), exp)
+  } else {
+    x
+  }
+}
+
+glance.snaftm <- function(x, ...) {
+  out <-
+    data.frame(
+      nobs = 0
+    )
+  return(out)
+}
+
+
 # g-methods ---------------------------------------------------------------
 
 coxmsm <- function(treatment, msm, numerator = NULL, denominator, id, time, data, center = FALSE) {

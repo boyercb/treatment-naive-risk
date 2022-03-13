@@ -1,16 +1,6 @@
 
 # intention to treat analysis ---------------------------------------------
 
-tx_ints <-
-  paste0("tx:",
-         c("gender1", "age", "dm03", "sbp", "cursmk", "hdl", "ldl", "htnmed"))
-
-trials_pt <-
-  trials_pt %>%
-  mutate(
-    across(log_transform, ~log(.x + 1)),
-  )
-
 itt_fits <-
   list(
     "(1)" = glm(
@@ -21,239 +11,118 @@ itt_fits <-
       family = binomial(link = "logit"),
       data = trials_pt
     ),
-    "(2)" = glm(
+    "(2)" = snaftm(
+      rpsm = Surv(cvdatt, cvda) ~ tx,
       formula = reformulate(
-        termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", tv_vars, baseline_vars, "tx", tx_ints), 
-        response = "cvda"
-        ),
+        termlabels = c("bs(time, 5)", tv_adj_vars, baseline_vars, baseline_vars_long), 
+        response = "tx"
+      ),
       family = binomial(link = "logit"),
-      data = trials_pt
-    ),
-    "(3)" = glm(
-      formula = reformulate(
-        termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", tv_vars, baseline_vars, "tx", "tx:risk"), 
-        response = "cvda"
-        ),
-      family = binomial(link = "logit"),
-      data = trials_pt
+      data = trial1_long,
+      id = "mesaid",
+      time = "time"
     )
   )
 
-itt_fits <- lapply(itt_fits, function(x) {
-  class(x) <- c("custom", class(x))
-  return(x)
-})
+T0_weibull_fit_itt <- 
+  survreg(
+    Surv(H_psi, cvda) ~ 1,
+    dist = 'weibull',
+    data = trial1_long %>%
+      mutate(
+        H_psi = H(
+          psi = itt_fits[[2]]$estimate, 
+          data = as.matrix(select(trial1_long, mesaid, time, cvdatt, tx)), 
+          id = "mesaid",
+          time = "time",
+          eventtime = "cvdatt"
+        ),
+        H_psi = pmin(H_psi, 120)
+      ) %>% filter(exam == 2)
+      # filter(!(cvda == 1 & delta_psi == 0))
+  )
+
+class(itt_fits[[1]]) <- c("custom", class(itt_fits[[1]]))
+class(itt_fits[[2]]) <- c("snaftm", class(itt_fits[[2]]))
 
 
 # adherence-adjusted analysis ---------------------------------------------
 
-tv_adj_vars <- c(
-  "lag1_dm03",
-  "lag1_htn",
-  "lag1_cursmk",
-  "lag1_waistcm",
-  "htnmed",
-  "asacat",
-  "diur",
-  "diabins",
-  "anydep",
-  "vasoda",
-  "anara",
-  "lag1_hinone",
-  "lag1_sbp",
-  "lag1_dbp",
-  "lag1_ldl",
-  "lag1_hdl",
-  "lag1_trig", 
-  "lag1_dpw",
-  "lag1_exercise"
+ipcw_fit <- ipcw(
+  formula = reformulate(
+    termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long, "tx"), 
+    response = "cvda"
+  ),
+  treatment = "tx",
+  numerator = reformulate(
+    termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long), 
+    response = "censor"
+  ),
+  denominator = reformulate(
+    termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", tv_adj_vars, baseline_vars, baseline_vars_long), 
+    response = "censor"
+  ),
+  id = "id",
+  time = "time",
+  data = trials_long_pt
 )
 
-trials_long_pt <-
-  trials_long_pt %>%
-  mutate(
-    across(c(str_replace(log_transform, "exercise", "bl_exercise"), "lag1_exercise"), ~log(.x + 1))
-  )
-
-
-tx_ints <-
-  paste0(
-    "tx:",
-    c(
-      "gender1",
-      "bl_age",
-      "bl_dm03",
-      "bl_sbp",
-      "bl_cursmk",
-      "bl_hdl",
-      "bl_ldl",
-      "bl_htnmed"
+adherence_fits <-
+  list(
+    "(3)" = ipcw_fit$msm[[1]],
+    "(4)" = snaftm(
+      rpsm = Surv(cvdatt, cvda) ~ lipid,
+      formula = reformulate(
+        termlabels = c("bs(time, 5)", tv_adj_vars, baseline_vars, baseline_vars_long), 
+        response = "lipid"
+      ),
+      family = binomial(link = "logit"),
+      data = trial1_long,
+      id = "mesaid",
+      time = "time"
     )
   )
 
-adherence_msms <-
-  coxmsm(
-    treatment = "tx",
-    msm = list(
-      reformulate(
-        termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long, "tx"), 
-        response = "cvda"
-      ),
-      reformulate(
-        termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long, "tx", tx_ints), 
-        response = "cvda"
-      ),
-      reformulate(
-        termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long, "tx", tx_ints),
-        response = "cvda"
-      )
-    ),
-    numerator = reformulate(
-      termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", baseline_vars, baseline_vars_long), 
-      response = "censor"
-    ),
-    denominator = reformulate(
-      termlabels = c("trial2", "trial3", "trial4", "bs(time, 5)", tv_adj_vars, baseline_vars, baseline_vars_long), 
-      response = "censor"
-    ),
-    id = "id",
-    time = "time",
-    data = trials_long_pt
+
+T0_weibull_fit_adherence <- 
+  survreg(
+    Surv(H_psi, cvda) ~ 1, 
+    dist = 'weibull',
+    data = 
+      trial1_long %>%
+      mutate(
+        H_psi = H(
+          psi = adherence_fits[[2]]$estimate, 
+          data = as.matrix(select(trial1_long, mesaid, time, cvdatt, lipid)), 
+          id = "mesaid",
+          time = "time",
+          eventtime = "cvdatt"
+        ),
+        H_psi = pmin(H_psi, 120)
+      ) %>% filter(exam == 2)
   )
 
 
-adherence_msms_fits <- lapply(adherence_msms$msm, function(x) {
-  class(x) <- c("custom", class(x))
-  return(x)
-})
+adherence_fits[[2]]$term <- "tx"
 
-het_p <- map2(
-  .x = list(
-    itt_fits[[1]],
-    itt_fits[[1]],
-    adherence_msms_fits[[1]],
-    adherence_msms_fits[[1]]
-  ),
-  .y = list(
-    itt_fits[[2]],
-    itt_fits[[3]],
-    adherence_msms_fits[[2]],
-    adherence_msms_fits[[3]]
-  ),
-  function(x, y) waldtest(x, y)$`Pr(>F)`[2]
-)
-
+class(adherence_fits[[1]]) <- c("custom", class(adherence_fits[[1]]))
+class(adherence_fits[[2]]) <- c("snaftm", class(adherence_fits[[2]]))
 
 modelsummary(
-  models = c(itt_fits, adherence_msms_fits),
+  models = c(itt_fits, adherence_fits),
   #vcov = ~mesaid, 
   fmt = '%.2f',
   estimate = "{estimate} ({conf.low}, {conf.high})",
   statistic = NULL,
-  # coef_rename = c(
-  #   'tx' = 'lipid-lowering medication',
-  #   ''
-  # ),
-  # add_rows = tribble(
-  #   ~term, ~`Model 1`, ~`Model 2`,
-  #   'P-value for heterogeneity', '', as.character(round(p, 3)))
-  # ,
+  coef_rename = c(
+    'tx' = 'lipid-lowering medication'
+  ),
+  add_rows = tribble(
+    ~term, ~`(1)`, ~`(2)`, ~`(3)`, ~`(4)`,
+    'Weibull scale', '', as.character(specd(T0_weibull_fit_itt$scale, 2)), '', as.character(specd(T0_weibull_fit_adherence$scale, 2))
+    ),
   coef_omit = "^(?!.*tx.*)",
   gof_omit = "(AIC)|(BIC)|(Log.*)|(RMSE)"
 )
 
 
-
-# test_fits <- list(
-#   glm(
-#     formula = reformulate(c("bs(time, 3)", baseline_vars, "age", "tx"), "cvda"),
-#     family = binomial(link = "logit"),
-#     weights = ipw,
-#     data = filter(trials_long_pt, censor == 0 & trial == 1)
-#   ),
-#   glm(
-#     formula = reformulate(c("bs(time, 3)", baseline_vars, "age", "tx"), "cvda"),
-#     family = binomial(link = "logit"),
-#     weights = ipw,
-#     data = filter(trials_long_pt, censor == 0 & trial == 2)
-#   ),
-#   glm(
-#     formula = reformulate(c("bs(time, 3)", baseline_vars, "age", "tx"), "cvda"),
-#     family = binomial(link = "logit"),
-#     weights = ipw,
-#     data = filter(trials_long_pt, censor == 0 & trial == 3)
-#   ),
-#   glm(
-#     formula = reformulate(c("bs(time, 3)", baseline_vars, "age", "tx"), "cvda"),
-#     family = binomial(link = "logit"),
-#     weights = ipw,
-#     data = filter(trials_long_pt, censor == 0 & trial == 4)
-#   )
-# )
-# modelsummary(test_fits,fmt = 3)
-# 
-# test_fits <- list(
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 1 & trial == 1),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 1 & trial == 2),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 1 & trial == 3),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 1 & trial == 4),
-#   )
-# )
-# modelsummary(test_fits,fmt = 3)
-# 
-# test_fits <- list(
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 0 & trial == 1),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 0 & trial == 2),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 0 & trial == 3),
-#   ),
-#   glm(
-#     #formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     formula = reformulate(c("bs(time, 3)", tv_adj_vars, baseline_vars), "censor"),
-#     family = binomial(link = "logit"),
-#     data = filter(trials_long_pt, tx == 0 & trial == 4),
-#   )
-# )
-# 
-# 
-# 
-# 
-# 
-# modelsummary(test_fits,fmt = 3)# geeglm(
-# #   formula = reformulate(c("factor(trial)", "bs(time, 5)", "tx"), "cvda"),
-# #   family = binomial(link = "logit"),
-# #   data = trials_pt,
-# #   id = mesaid
-# # ) %>% summary()

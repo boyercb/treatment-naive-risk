@@ -272,6 +272,28 @@ cont_vars <- c(
   "exercise"
 )
 
+tv_adj_vars <- c(
+  "lag1_dm03",
+  "lag1_htn",
+  "lag1_cursmk",
+  "lag1_waistcm",
+  "htnmed",
+  "asacat",
+  "diur",
+  "diabins",
+  "anydep",
+  "vasoda",
+  "anara",
+  "lag1_hinone",
+  "lag1_sbp",
+  "lag1_dbp",
+  "lag1_ldl",
+  "lag1_hdl",
+  "lag1_trig", 
+  "lag1_dpw",
+  "lag1_exercise"
+)
+
 
 # create analytic variables -----------------------------------------------
 

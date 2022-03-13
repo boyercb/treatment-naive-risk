@@ -160,3 +160,14 @@ baseline_table <-
   align(j = c(2, 3), align = "center", part = "all") %>%
   autofit() 
 
+
+trials_pt <-
+  trials_pt %>%
+  mutate(
+    across(log_transform, ~log(.x + 1)),
+  )
+trials_long_pt <-
+  trials_long_pt %>%
+  mutate(
+    across(c(str_replace(log_transform, "exercise", "bl_exercise"), "lag1_exercise"), ~log(.x + 1))
+  )

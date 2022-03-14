@@ -81,7 +81,7 @@ baseline_table <-
   pivot_wider(
     names_from = c("tx", "func"),
     values_from = "value",
-    names_prefix = c("tx_", "tx_")
+    names_prefix = "tx_"
   ) %>% 
   mutate(
     tx_0 = if_else(
@@ -150,21 +150,20 @@ baseline_table <-
       name == "exercise" ~ "Exercise, MET/min"
     )
   ) %>%
-  flextable() %>%
-  set_header_labels(
-    name = "", 
-    tx_1 = paste0("Initiators\n(N = ", format(table(trials$tx)[2], big.mark = ","), ")"), 
-    tx_0 = paste0("Non-initiators\n(N = ", format(table(trials$tx)[1], big.mark = ","), ")")
+  gt() %>%
+  cols_label(
+    name = "",
+    tx_1 = md(paste0("**Initiators<br>(N = ", format(table(trials$tx)[2], big.mark = ","), ")**")),
+    tx_0 = md(paste0("**Non-initiators<br>(N = ", format(table(trials$tx)[1], big.mark = ","), ")**"))
   ) %>%
-  theme_booktabs(bold_header = TRUE) %>%
-  align(j = c(2, 3), align = "center", part = "all") %>%
-  autofit() 
+  cols_align(align = "center", columns = c(tx_1, tx_0))
 
+baseline_table %>% as_latex()
 
 trials_pt <-
   trials_pt %>%
   mutate(
-    across(log_transform, ~log(.x + 1)),
+    across(all_of(log_transform), ~log(.x + 1)),
   )
 trials_long_pt <-
   trials_long_pt %>%

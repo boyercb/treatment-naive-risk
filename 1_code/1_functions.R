@@ -107,7 +107,7 @@ generate_snaftm <-
 
 # custom modelsummary tidiers ---------------------------------------------
 
-tidy.custom <- function (x, conf.int = FALSE, conf.level = 0.95, conf.method = "wald", exponentiate = TRUE, 
+tidy.custom <- function (x, conf.int = FALSE, conf.level = 0.95, conf.method = "wald", exponentiate = F, 
                          ...) 
 {
   ret <- as_tibble(summary.glm(x)$coefficients, rownames = "term")
@@ -151,7 +151,7 @@ glance.custom <- function(x, ...) {
 }
 
 
-tidy.snaftm <- function (x, exponentiate = TRUE, ...) {
+tidy.snaftm <- function (x, exponentiate = F, ...) {
   if (exponentiate) {
     mutate_at(x, vars(estimate, conf.low, conf.high), exp)
   } else {

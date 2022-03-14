@@ -174,57 +174,57 @@ glance.snaftm <- function(x, ...) {
 # ipcw --------------------------------------------------------------------
 
 
-ipcw <- function(formula, treatment, numerator = NULL, denominator, id, time, data, center = FALSE) {
-  
-  # treatment models: denominator
-  denominator_model_at <- glm(
-    formula = denominator,
-    family = binomial(link = "logit"),
-    data = data[data[[treatment]] == 1, ]
-  )
-  
-  denominator_model_nt <- glm(
-    formula = denominator,
-    family = binomial(link = "logit"),
-    data = data[data[[treatment]] == 0, ]
-  )
-  
-  # treatment models: numerator
-  if (!is.null(numerator)) {
-    stopifnot(all.vars(numerator)[1] == all.vars(denominator)[1])
-    numerator_model_at <- glm(
-      formula = numerator,
+ipcw <- function(formula, treatment, numerator = NULL, denominator, id, time, data, weights = NULL) {
+  if (is.null(weights)) {
+    # treatment models: denominator
+    denominator_model_at <- glm(
+      formula = denominator,
       family = binomial(link = "logit"),
       data = data[data[[treatment]] == 1, ]
     )
     
-    numerator_model_nt <- glm(
-      formula = numerator,
+    denominator_model_nt <- glm(
+      formula = denominator,
       family = binomial(link = "logit"),
       data = data[data[[treatment]] == 0, ]
     )
-  }
-  
-  censor <- all.vars(denominator)[1]
-  
-  # get predictions
-  p_num_at <- 1 - predict(numerator_model_at, newdata = data, type = "response")
-  p_num_nt <- 1 - predict(numerator_model_nt, newdata = data, type = "response")
-  p_den_at <- 1 - predict(denominator_model_at, newdata = data, type = "response")
-  p_den_nt <- 1 - predict(denominator_model_nt, newdata = data, type = "response")
-  
-  # add to dataset
-  data <- dplyr::mutate(
-    data, 
-    p_num = dplyr::if_else(.data[[treatment]] == 1,  p_num_at, p_num_nt),
-    p_den = dplyr::if_else(.data[[treatment]] == 1,  p_den_at, p_den_nt)
-  )
-  
-  # calculate cumulative product
-  data <- dplyr::group_by(data, .data[[id]]) 
-  
-  data <- dplyr::mutate(
-    data, 
+    
+    # treatment models: numerator
+    if (!is.null(numerator)) {
+      stopifnot(all.vars(numerator)[1] == all.vars(denominator)[1])
+      numerator_model_at <- glm(
+        formula = numerator,
+        family = binomial(link = "logit"),
+        data = data[data[[treatment]] == 1, ]
+      )
+      
+      numerator_model_nt <- glm(
+        formula = numerator,
+        family = binomial(link = "logit"),
+        data = data[data[[treatment]] == 0, ]
+      )
+    }
+    
+    censor <- all.vars(denominator)[1]
+    
+    # get predictions
+    p_num_at <- 1 - predict(numerator_model_at, newdata = data, type = "response")
+    p_num_nt <- 1 - predict(numerator_model_nt, newdata = data, type = "response")
+    p_den_at <- 1 - predict(denominator_model_at, newdata = data, type = "response")
+    p_den_nt <- 1 - predict(denominator_model_nt, newdata = data, type = "response")
+    
+    # add to dataset
+    data <- dplyr::mutate(
+      data, 
+      p_num = dplyr::if_else(.data[[treatment]] == 1,  p_num_at, p_num_nt),
+      p_den = dplyr::if_else(.data[[treatment]] == 1,  p_den_at, p_den_nt)
+    )
+    
+    # calculate cumulative product
+    data <- dplyr::group_by(data, .data[[id]]) 
+    
+    data <- dplyr::mutate(
+      data, 
       p_num = dplyr::if_else(
         .data[[censor]] == 1, 
         1 - p_num * cumprod(dplyr::lag(p_num, 1, default = 1)),
@@ -237,21 +237,24 @@ ipcw <- function(formula, treatment, numerator = NULL, denominator, id, time, da
       ),
       ipcw = p_num / p_den
     )
-  
-  data <- dplyr::ungroup(data)
-  
-  if (!is.list(formula)) {
-    formula <- list(formula)
+    
+    data <- dplyr::ungroup(data)
+    
+  } else {
+    denominator_model_at <- NULL
+    denominator_model_nt <- NULL
+    numerator_model_at <- NULL
+    numerator_model_nt <- NULL
+    data$ipcw <- weights
   }
-  
-  ipcw_model <- lapply(formula, function (x) {
+
+  ipcw_model <-
     glm(
-      formula = x,
+      formula = formula,
       family = binomial(link = "logit"),
       weights = ipcw,
       data = data
     )
-  })
   
   ret <- list(
     "fit" = ipcw_model,

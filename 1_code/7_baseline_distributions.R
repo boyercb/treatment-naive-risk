@@ -109,29 +109,29 @@ baseline_table <-
       name == "race_asia1" ~ "Asian, %",
       name == "employed1" ~ "Currently employed, %",
       name == "retired1" ~ "Retired, %",
-      name == "evsmk1" ~ "Smoked > 100 cigarettes in lifetime, %",
+      name == "evsmk1" ~ "Smoked >100 cigarettes in lifetime, %",
       name == "cursmk" ~ "Current smoker, %",
-      name == "cesd1c" ~ "CES Depression scale",
-      name == "chrbu61c" ~ "Chronic burden scale",
-      name == "discry1c" ~ "Discrimination scale",
-      name == "emot1c" ~ "Emotional support scale",
-      name == "hassl1c" ~ "Everyday hassles scale",
-      name == "splang1c" ~ "Spielberger trait anger scale",
-      name == "splanx1c" ~ "Spielberger trait anxiety scale",
-      name == "pregn1" ~ "Pregnancies",
+      name == "cesd1c" ~ "CES Depression scale (0-60)",
+      name == "chrbu61c" ~ "Chronic burden scale (0-5)",
+      name == "discry1c" ~ "Perceived discrimination scale (0-4)",
+      name == "emot1c" ~ "Emotional support scale (0-30)",
+      name == "hassl1c" ~ "Everyday hassles scale (0-54)",
+      name == "splang1c" ~ "Spielberger trait anger scale (0-40)",
+      name == "splanx1c" ~ "Spielberger trait anxiety scale (0-40)",
+      name == "pregn1" ~ "Number of pregnancies",
       name == "bpillyr1" ~ "Years on birth control pills",
-      name == "menoage1" ~ "Age at menopause",
-      name == "nprob1c" ~ "Neighborhood problems scale",
+      name == "menoage1" ~ "Age at menopause, years",
+      name == "nprob1c" ~ "Neighborhood problems scale (0-28)",
       name == "famhist1" ~ "Family history of CVD, %",
       name == "agatpm1c" ~ "Calcium score",
       name == "ecglvh1c" ~ "Left ventricular hypertrophy on ECG, %",
       # name == "afib1c" ~ "Atrial Fibrillation on ECG, %",
-      name == "crp1" ~ "C-reactive protein",
-      name == "il61" ~ "Interleukin-6",
+      name == "crp1" ~ "C-reactive protein, mg/dL",
+      name == "il61" ~ "Interleukin-6, pg/mL",
       name == "age" ~ "Age, years",
-      name == "risk" ~ "Baseline ASCVD risk",
+      name == "risk" ~ "Baseline ASCVD risk, %",
       name == "dm03" ~ "Diabetes mellitus, %",
-      name == "htn" ~ "Hypertension",
+      name == "htn" ~ "Hypertension, %",
       name == "waistcm" ~ "Waist circumference, cm",
       name == "htnmed" ~ "Anti-hypertensive medication, %",
       name == "diabins" ~ "Insulin or oral hypoglycemics, %",
@@ -148,17 +148,30 @@ baseline_table <-
       name == "trig" ~ "Triglycerides, mg/dL",
       name == "dpw" ~ "Drinks per week",
       name == "exercise" ~ "Exercise, MET/min"
-    )
+    ),
+    name = escape_latex(name)
   ) %>%
   gt() %>%
   cols_label(
     name = "",
-    tx_1 = md(paste0("**Initiators<br>(N = ", format(table(trials$tx)[2], big.mark = ","), ")**")),
-    tx_0 = md(paste0("**Non-initiators<br>(N = ", format(table(trials$tx)[1], big.mark = ","), ")**"))
+    tx_1 = md(paste0("**(N = ", format(table(trials$tx)[2], big.mark = ","), ")**")),
+    tx_0 = md(paste0("**(N = ", format(table(trials$tx)[1], big.mark = ","), ")**"))
   ) %>%
+  tab_spanner(label = md("**Initiators**"), columns = tx_1) %>%
+  tab_spanner(label = md("**Non-initiators**"), columns = tx_0) %>%
+  tab_style(
+    style = list(cell_borders("all", weight = NULL)), 
+    locations = cells_column_spanners(c("**Initiators**", "**Non-initiators**"))
+    ) %>%
   cols_align(align = "center", columns = c(tx_1, tx_0))
 
-baseline_table %>% as_latex()
+baseline_table %>% 
+  as_latex() %>%
+  as.character() %>%
+  remove_escape_latex() %>%
+  str_remove(., fixed("\n\\cmidrule(lr){2-2} \\cmidrule(lr){3-3}")) %>%
+  str_replace(., fixed(">"), "$>$") %>%
+  write_file("2_tables/baseline.tex")
 
 trials_pt <-
   trials_pt %>%
@@ -170,3 +183,21 @@ trials_long_pt <-
   mutate(
     across(c(str_replace(log_transform, "exercise", "bl_exercise"), "lag1_exercise"), ~log(.x + 1))
   )
+
+
+remove_escape_latex <- function(x) {
+  enable_special_characters = function(x) {
+    gsub("\\\\([&%$#_{}])", "\\1", x, fixed = FALSE, ignore.case = TRUE) 
+  }
+  enable_backslash = function(x) {
+    gsub("\\\\textbackslash([[:space:]])?", "\\\\", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  enable_tilde = function(x) {
+    gsub("\\\\textasciitilde([[:space:]])?", "~", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  enable_exponents = function(x) {
+    gsub("\\\\textasciicircum ", "\\^", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  
+  enable_backslash(enable_special_characters(enable_tilde(enable_exponents(x))))
+}

@@ -5,7 +5,82 @@
 mesa <- 
   mesa %>%
   mutate(
-    exercise4 = exercise3
+    exercise4 = exercise3,
+    
+    # indicator for whether subject initiated statin therapy over follow up
+    start_lipmed = pmax(lipid2c, lipid3c, lipid4c, lipid5c, na.rm = TRUE),
+    start_lipmed_exam = case_when(
+      start_lipmed == 1 & lipid2c == 1 ~ 2,
+      start_lipmed == 1 & lipid3c == 1 ~ 3,
+      start_lipmed == 1 & lipid4c == 1 ~ 4,
+      start_lipmed == 1 & lipid5c == 1 ~ 5,
+      TRUE ~ NA_real_
+    ),
+    start_lipmed_time = case_when(
+      start_lipmed == 1 & lipid2c == 1 ~ time2,
+      start_lipmed == 1 & lipid3c == 1 ~ time3,
+      start_lipmed == 1 & lipid4c == 1 ~ time4,
+      start_lipmed == 1 & lipid5c == 1 ~ time5,
+      TRUE ~ NA_real_
+    ),
+    stop_lipmed_time = case_when(
+      start_lipmed_exam == 2 & lipid3c == 0 ~ time3,
+      start_lipmed_exam == 2 & lipid3c == 1 & lipid4c == 0 ~ time4,
+      start_lipmed_exam == 2 & lipid3c == 1 & lipid4c == 1 & lipid5c == 0 ~ time5,
+      start_lipmed_exam == 3 & lipid4c == 0 ~ time4,
+      start_lipmed_exam == 3 & lipid4c == 1 & lipid5c == 0 ~ time5,
+      start_lipmed_exam == 4 & lipid5c == 0 ~ time5,
+      TRUE ~ NA_real_
+    ),
+    start_lipmed_time_alt = case_when(
+      start_lipmed == 1 & lipid2c == 1 ~ 1,
+      start_lipmed == 1 & lipid3c == 1 ~ time2 + 1,
+      start_lipmed == 1 & lipid4c == 1 ~ time3 + 1,
+      start_lipmed == 1 & lipid5c == 1 ~ time4 + 1,
+      TRUE ~ NA_real_
+    ),
+    secondary_lipmed = if_else(cvda == 1 & start_lipmed_time >= cvdatt, 1, 0),
+    secondary_lipmed_alt = if_else(cvda == 1 & start_lipmed_time_alt >= cvdatt, 1, 0),
+    primary_lipmed = if_else(start_lipmed == 1 & secondary_lipmed == 0, 1, 0),
+    primary_lipmed_alt = if_else(start_lipmed == 1 & secondary_lipmed_alt == 0, 1, 0),
+    
+    # indicator for whether subject initiated hypertensive therapy over follow up
+    start_bpmed = pmax(htnmed2c, htnmed3c, htnmed4c, htnmed5c, na.rm = TRUE),
+    start_bpmed_exam = case_when(
+      start_bpmed == 1 & htnmed2c == 1 ~ 2,
+      start_bpmed == 1 & htnmed3c == 1 ~ 3,
+      start_bpmed == 1 & htnmed4c == 1 ~ 4,
+      start_bpmed == 1 & htnmed5c == 1 ~ 5,
+      TRUE ~ NA_real_
+    ),
+    start_bpmed_time = case_when(
+      start_bpmed == 1 & htnmed2c == 1 ~ time2,
+      start_bpmed == 1 & htnmed3c == 1 ~ time3,
+      start_bpmed == 1 & htnmed4c == 1 ~ time4,
+      start_bpmed == 1 & htnmed5c == 1 ~ time5,
+      TRUE ~ NA_real_
+    ),
+    secondary_bpmed = if_else(cvda == 1 & start_bpmed_time >= cvdatt, 1, 0),
+    primary_bpmed = if_else(start_bpmed == 1 & secondary_bpmed == 0, 1, 0),
+    
+    # indicator for whether subject initiated aspirin therapy over follow up
+    start_aspmed = pmax(asacat2c, asacat3c, asacat4c, asacat5c, na.rm = TRUE),
+    start_aspmed_exam = case_when(
+      start_aspmed == 1 & asacat2c == 1 ~ 2,
+      start_aspmed == 1 & asacat3c == 1 ~ 3,
+      start_aspmed == 1 & asacat4c == 1 ~ 4,
+      start_aspmed == 1 & asacat5c == 1 ~ 5,
+      TRUE ~ NA_real_
+    ),
+    start_aspmed_time = case_when(
+      start_aspmed == 1 & asacat2c == 1 ~ time2,
+      start_aspmed == 1 & asacat3c == 1 ~ time3,
+      start_aspmed == 1 & asacat4c == 1 ~ time4,
+      start_aspmed == 1 & asacat5c == 1 ~ time5,
+      TRUE ~ NA_real_
+    ),
+    secondary_aspmed = if_else(cvda == 1 & start_aspmed_time >= cvdatt, 1, 0),
+    primary_aspmed = if_else(start_aspmed == 1 & secondary_aspmed == 0, 1, 0)
    )
 
 
@@ -19,7 +94,9 @@ trial1 <-
     tx = lipid2c,
     cvda = replace(cvda, cvdatt - time2 > 3652, 0),
     cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
+    cvdatt = replace(cvdatt, cvdatt < 3652 & cvda == 0 & dth == 1, 3652),
     cvdatt = round(cvdatt / (365/12)),
+    cens = if_else(cvdatt < 3652 & cvda == 0 & dth == 0, 1, 0),
     age = age2c,
     cursmk = cursmk1,
     dm03 = dm031c,
@@ -63,7 +140,9 @@ trial2 <-
     tx = lipid3c,
     cvda = replace(cvda, cvdatt - time2 > 3652, 0),
     cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
+    cvdatt = replace(cvdatt, cvdatt < 3652 & cvda == 0 & dth == 1, 3652),
     cvdatt = round((cvdatt - (time3 - time2)) / (365/12)),
+    cens = if_else(cvdatt < 3652 & cvda == 0 & dth == 0, 1, 0),
     age = age3c,
     cursmk = cursmk2,
     dm03 = dm032c,
@@ -102,7 +181,9 @@ trial3 <-
     tx = lipid4c,
     cvda = replace(cvda, cvdatt - time2 > 3652, 0),
     cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
+    cvdatt = replace(cvdatt, cvdatt < 3652 & cvda == 0 & dth == 1, 3652),
     cvdatt = round((cvdatt - (time4 - time2)) / (365/12)),
+    cens = if_else(cvdatt < 3652 & cvda == 0 & dth == 0, 1, 0),
     age = age4c,
     cursmk = cursmk3,
     dm03 = dm033c,
@@ -140,7 +221,9 @@ trial4 <-
     tx = lipid5c,
     cvda = replace(cvda, cvdatt - time2 > 3652, 0),
     cvdatt = replace(cvdatt - time2, cvdatt - time2 > 3652, 3652),
+    cvdatt = replace(cvdatt, cvdatt < 3652 & cvda == 0 & dth == 1, 3652),
     cvdatt = round((cvdatt - (time5 - time2)) / (365/12)),
+    cens = if_else(cvdatt < 3652 & cvda == 0 & dth == 0, 1, 0),
     age = age5c,
     cursmk = cursmk4,
     dm03 = dm034c,
@@ -192,7 +275,8 @@ trials <-
     race_white1,
     educ_pri1,
     cvdatt,
-    cvda
+    cvda,
+    cens
   ) 
 
 # create person-time dataset
@@ -228,6 +312,9 @@ create_long_trial <- function(data, exam_no) {
       # administratively censor at 10-years
       cvda = replace(cvda, cvdatt > 3652, 0),
       cvdatt = replace(cvdatt, cvdatt > 3652, 3652),
+      cvdatt = replace(cvdatt, cvdatt < 3652 & cvda == 0 & dth == 1, 3652),
+      cens = if_else(cvdatt < 3652 & cvda == 0 & dth == 0, 1, 0),
+      
       cvdatt_alt = replace(cvdatt_alt, cvdatt_alt > 3652, 3652),
       
       # change to person-months
@@ -388,7 +475,8 @@ trials_long <-
     race_white1,
     educ_pri1,
     cvdatt,
-    cvda
+    cvda,
+    cens
   ) 
 
 # censor when deviates from regime

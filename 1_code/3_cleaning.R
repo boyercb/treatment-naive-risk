@@ -230,8 +230,8 @@ tv_vars_wide <- c(
 
 outcome_vars <- c(
   "cvdatt",
-  "cvdatt_alt",
-  "cvda"
+  "cvda",
+  "dth"
 )
 
 time_vars_wide <- c(
@@ -434,72 +434,6 @@ mesa <-
     retired3 = if_else(empstat3 == 0, employed1, if_else(curjob3 %in% c(8, 9, 10), 1, 0)), 
     retired4 = if_else(empstat4 == 0, employed1, if_else(curjob4 %in% c(8, 9, 10), 1, 0)), 
     retired5 = if_else(empstat5 == 0, employed1, if_else(curjob5 %in% c(8, 9, 10), 1, 0)), 
-    
-    # indicator for whether subject initiated statin therapy over follow up
-    start_lipmed = pmax(lipid2c, lipid3c, lipid4c, lipid5c, na.rm = TRUE),
-    start_lipmed_exam = case_when(
-      start_lipmed == 1 & lipid2c == 1 ~ 2,
-      start_lipmed == 1 & lipid3c == 1 ~ 3,
-      start_lipmed == 1 & lipid4c == 1 ~ 4,
-      start_lipmed == 1 & lipid5c == 1 ~ 5,
-      TRUE ~ NA_real_
-    ),
-    start_lipmed_time = case_when(
-      start_lipmed == 1 & lipid2c == 1 ~ e12dyc,
-      start_lipmed == 1 & lipid3c == 1 ~ e13dyc,
-      start_lipmed == 1 & lipid4c == 1 ~ e14dyc,
-      start_lipmed == 1 & lipid5c == 1 ~ e15dyc,
-      TRUE ~ NA_real_
-    ),
-    start_lipmed_time_alt = case_when(
-      start_lipmed == 1 & lipid2c == 1 ~ 1,
-      start_lipmed == 1 & lipid3c == 1 ~ e12dyc + 1,
-      start_lipmed == 1 & lipid4c == 1 ~ e13dyc + 1,
-      start_lipmed == 1 & lipid5c == 1 ~ e14dyc + 1,
-      TRUE ~ NA_real_
-    ),
-    secondary_lipmed = if_else(cvda == 1 & start_lipmed_time >= cvdatt, 1, 0),
-    secondary_lipmed_alt = if_else(cvda == 1 & start_lipmed_time_alt >= cvdatt, 1, 0),
-    primary_lipmed = if_else(start_lipmed == 1 & secondary_lipmed == 0, 1, 0),
-    primary_lipmed_alt = if_else(start_lipmed == 1 & secondary_lipmed_alt == 0, 1, 0),
-      
-    # indicator for whether subject initiated hypertensive therapy over follow up
-    start_bpmed = pmax(htnmed2c, htnmed3c, htnmed4c, htnmed5c, na.rm = TRUE),
-    start_bpmed_exam = case_when(
-      start_bpmed == 1 & htnmed2c == 1 ~ 2,
-      start_bpmed == 1 & htnmed3c == 1 ~ 3,
-      start_bpmed == 1 & htnmed4c == 1 ~ 4,
-      start_bpmed == 1 & htnmed5c == 1 ~ 5,
-      TRUE ~ NA_real_
-    ),
-    start_bpmed_time = case_when(
-      start_bpmed == 1 & htnmed2c == 1 ~ e12dyc,
-      start_bpmed == 1 & htnmed3c == 1 ~ e13dyc,
-      start_bpmed == 1 & htnmed4c == 1 ~ e14dyc,
-      start_bpmed == 1 & htnmed5c == 1 ~ e15dyc,
-      TRUE ~ NA_real_
-    ),
-    secondary_bpmed = if_else(cvda == 1 & start_bpmed_time >= cvdatt, 1, 0),
-    primary_bpmed = if_else(start_bpmed == 1 & secondary_bpmed == 0, 1, 0),
-    
-    # indicator for whether subject initiated aspirin therapy over follow up
-    start_aspmed = pmax(asacat2c, asacat3c, asacat4c, asacat5c, na.rm = TRUE),
-    start_aspmed_exam = case_when(
-      start_aspmed == 1 & asacat2c == 1 ~ 2,
-      start_aspmed == 1 & asacat3c == 1 ~ 3,
-      start_aspmed == 1 & asacat4c == 1 ~ 4,
-      start_aspmed == 1 & asacat5c == 1 ~ 5,
-      TRUE ~ NA_real_
-    ),
-    start_aspmed_time = case_when(
-      start_aspmed == 1 & asacat2c == 1 ~ e12dyc,
-      start_aspmed == 1 & asacat3c == 1 ~ e13dyc,
-      start_aspmed == 1 & asacat4c == 1 ~ e14dyc,
-      start_aspmed == 1 & asacat5c == 1 ~ e15dyc,
-      TRUE ~ NA_real_
-    ),
-    secondary_aspmed = if_else(cvda == 1 & start_aspmed_time >= cvdatt, 1, 0),
-    primary_aspmed = if_else(start_aspmed == 1 & secondary_aspmed == 0, 1, 0)
   )
 
 # rename variables prior to dropping
@@ -518,15 +452,11 @@ mesa <-
   select(
     mesaid,
     all_of(time_vars_wide),
-    cvdatt,
-    cvda,
+    all_of(outcome_vars), 
     all_of(baseline_vars),
     all_of(ref_vars),
     all_of(tv_vars_wide),
     prebase,
-    lipid1c,
-    starts_with("primary_"),
-    starts_with("secondary_"),
-    starts_with("start_")
+    lipid1c
   ) 
 

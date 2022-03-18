@@ -213,3 +213,193 @@ mesa <- Reduce(function(df1, df2) left_join(df1, df2, by = id_vars), dats)
 rm(dats)
 
 
+# NHANES ------------------------------------------------------------------
+
+
+# load dataframes for NHANES files and variable names
+data_files <- nhanes_data_files(cache = TRUE)
+variables <- nhanes_variables(cache = TRUE)
+
+# pull out just medication files, bp & lipid questionnaire, and lipid labs
+orphan_exams <- c("LAB13AM", "L13AM_C", "L13AM_B", "LAB13", "L13_B", "L13_C")
+search_string <- "(BPQ)|(TRIGLY)|(RXQ_RX)|((BPX$)|(BPX_))|(HDL)|(TCHOL)|((SMQ$)|(SMQ_))|(DIQ)|(MCQ)"
+nhanes_data_files <- filter(
+  data_files,
+  str_detect(data_file_name, search_string) | data_file_name %in% orphan_exams
+)
+
+# remove weird pandemic exam cycle  
+nhanes_data_files <- filter(nhanes_data_files, cycle == "2017-2018")
+
+# add variable indicating the data type
+nhanes_data_files <- mutate(
+  nhanes_data_files,
+  data_type = case_when(
+    str_detect(data_file_name, "TRIGLY") | data_file_name %in% orphan_exams[1:3] ~ "TRIGLY",
+    str_detect(data_file_name, "TCHOL") | data_file_name %in% orphan_exams[4:6] ~ "TCHOL",
+    str_detect(data_file_name, "HDL") ~ "HDL",
+    str_detect(data_file_name, "BPQ") ~ "BPQ",
+    str_detect(data_file_name, "RXQ") ~ "RXQ",
+    str_detect(data_file_name, "BPX") ~ "BPX",
+    str_detect(data_file_name, "SMQ") ~ "SMQ",
+    str_detect(data_file_name, "DIQ") ~ "DIQ",
+    str_detect(data_file_name, "MCQ") ~ "MCQ"
+  )
+)
+
+# sort by type and cycle
+nhanes_data_files <- arrange(nhanes_data_files, data_type, cycle)
+
+# limit to just variables of interest
+nhanes_data_files <- select(nhanes_data_files, data_type, cycle, data_file_name)
+
+# pivot to wider to make merging easier
+nhanes_data_files <- pivot_wider(
+  data = nhanes_data_files,
+  names_from = data_type, 
+  values_from = data_file_name
+)
+
+nhanes_data_files$HDL[is.na(nhanes_data_files$HDL)] <- orphan_exams[4:6]
+
+
+# create lists of variables names to select -------------------------------
+
+id_vars <- c("SEQN")
+design_vars <- c("cycle", "SDMVPSU", "SDMVSTRA", "WTINT2YR")
+demo_vars <- c("RIDAGEYR", "RIAGENDR", "RIDRETH1")
+
+BPQ_vars <- c(
+  id_vars,
+  design_vars,
+  demo_vars,
+  "BPQ100D",
+  "BPQ050A"
+)
+
+RXQ_vars <- c(
+  id_vars,
+  "RXDDRGID"
+)
+
+BPX_vars <- c(
+  id_vars,
+  "BPXSY1",
+  "BPXSY2",
+  "BPXSY3",
+  "BPXSY4"
+)
+
+TRIGLY_vars <- c(
+  id_vars,
+  "LBDLDL"
+  #"WTSAF2YR"
+)
+
+HDL_vars <- c(
+  id_vars,
+  "LBDHDD",
+  "LBDHDL"
+)
+
+TCHOL_vars <- c(
+  id_vars,
+  "LBXTC"
+)
+
+SMQ_vars <- c(
+  id_vars,
+  "SMQ040"
+)
+
+DIQ_vars <- c(
+  id_vars,
+  "DIQ010"
+)
+
+MCQ_vars <- c(
+  id_vars,
+  "MCQ160C",
+  "MCQ160D",
+  "MCQ160E",
+  "MCQ160F"
+)
+
+RX_LIST <- c(
+  "d04105",
+  "d00746",
+  "d00280",
+  "d00348",
+  "d04851",
+  "d07637",
+  "d05348",
+  "d03183"
+)
+
+
+# download and merge data -------------------------------------------------
+
+nhanes_data <- pmap_dfr(as.list(nhanes_data_files), download_and_merge,
+                       rx_list = RX_LIST,
+                       BPQ_vars = BPQ_vars,
+                       RXQ_vars = RXQ_vars,
+                       BPX_vars = BPX_vars,
+                       TRIGLY_vars = TRIGLY_vars,
+                       HDL_vars = HDL_vars,
+                       TCHOL_vars = TCHOL_vars,
+                       SMQ_vars = SMQ_vars,
+                       DIQ_vars = DIQ_vars,
+                       MCQ_vars = MCQ_vars)
+
+nhanes_data <- 
+  rename(nhanes_data,
+         age = RIDAGEYR,
+         gender = RIAGENDR,
+         raceethnicity = RIDRETH1,
+         totchol = LBXTC,
+         hdl = LBDHDD,
+         ldl = LBDLDL,
+         liprx = BPQ100D,
+         hrx = BPQ050A,
+         smoker = SMQ040,
+         diabetes = DIQ010)
+
+
+# limit to adults over 40 and less than 79
+nhanes_data <- filter(nhanes_data, age >= 40 & age < 80)
+
+# create useful variables
+nhanes_data <- mutate(
+  nhanes_data,
+  liprx = if_else(liprx == "No" | is.na(liprx), 0, 1),
+  liprx = if_else(liprx == 1 | on_statin == 1, 1, 0),
+  hrx = if_else(hrx == "No" | is.na(hrx), 0, 1),
+  diabetes = if_else(diabetes == "No", 0, 1),
+  smoker = if_else(!is.na(smoker), 1, 0),
+  gender = tolower(gender),
+  # hdl = if_else(!is.na(LBDHDL), LBDHDL, hdl),
+  age = if_else(age %in% c("80 years of age and over", "81", "82", "83", "84"), "80", age),
+  prior_ascvd = if_else(MCQ160C == "Yes" | MCQ160D == "Yes" | MCQ160E == "Yes" | MCQ160F == "Yes", 1, 0),
+  sbp = rowMeans(select(nhanes_data, "BPXSY1", "BPXSY2", "BPXSY3", "BPXSY4"), na.rm = TRUE)
+) %>%
+  select(
+    age,
+    gender,
+    raceethnicity,
+    totchol,
+    sbp,
+    hdl,
+    ldl,
+    liprx,
+    hrx,
+    smoker,
+    diabetes,
+    prior_ascvd,
+    SEQN,
+    cycle,
+    SDMVPSU,
+    SDMVSTRA,
+    WTINT2YR
+  ) %>%
+  filter(prior_ascvd == 0) %>%
+  drop_na(-ldl)

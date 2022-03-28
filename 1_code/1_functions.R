@@ -248,6 +248,27 @@ generate_snaftm <-
 }
 
 
+pivot_snaftm_longer <- function(data) {
+  data %>% 
+    as_tibble() %>%
+    pivot_longer(
+      cols = matches("(^C)|(^D)|(^Y)|(^A)|(^L1)"), 
+      names_to = c(".value", "time"),
+      names_pattern = c("(.*)_(.*)")
+    ) %>%
+    group_by(id) %>%
+    mutate(
+      time = as.integer(time),
+      event = as.numeric(T < 10),
+      eventtime = if_else(event == 1, as.integer(T + 1), as.integer(T)),
+      Y = lead(Y, 1),
+      lag1_L1 = lag(L1, 1, default = 0),
+      lag1_A = lag(A, 1, default = 0)
+    ) %>%
+    filter(time < eventtime) %>%
+    ungroup()
+}
+
 
 # custom modelsummary tidiers ---------------------------------------------
 

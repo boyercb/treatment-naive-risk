@@ -11,6 +11,23 @@ get_data <- function(path) {
 
 specd <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
+remove_escape_latex <- function(x) {
+  enable_special_characters = function(x) {
+    gsub("\\\\([&%$#_{}])", "\\1", x, fixed = FALSE, ignore.case = TRUE) 
+  }
+  enable_backslash = function(x) {
+    gsub("\\\\textbackslash([[:space:]])?", "\\\\", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  enable_tilde = function(x) {
+    gsub("\\\\textasciitilde([[:space:]])?", "~", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  enable_exponents = function(x) {
+    gsub("\\\\textasciicircum ", "\\^", x, fixed = FALSE, ignore.case = TRUE)
+  }
+  
+  enable_backslash(enable_special_characters(enable_tilde(enable_exponents(x))))
+}
+
 
 # function to download NHANES data ----------------------------------------
 

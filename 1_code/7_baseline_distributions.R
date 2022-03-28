@@ -14,10 +14,6 @@ var_order <- c(
   "employed1",
   "retired1",
   "hinone",
-  "evsmk1",
-  "cursmk",
-  "dpw",
-  "exercise",
   "cesd1c",
   "chrbu61c",
   "discry1c",
@@ -25,24 +21,28 @@ var_order <- c(
   "hassl1c",
   "splang1c",
   "splanx1c",
-  "pregn1",
-  "bpillyr1",
-  "menoage1",
   "nprob1c",
-  "famhist1",
-  "agatpm1c",
-  "ecglvh1c",
-  "crp1",
-  "il61",
-  "risk",
-  "dm03",
-  "htn",
-  "waistcm",
   "sbp",
   "dbp",
   "ldl",
   "hdl",
   "trig",
+  "risk",
+  "dm03",
+  "htn",
+  "waistcm",
+  "evsmk1",
+  "cursmk",
+  "dpw",
+  "exercise",
+  "famhist1",
+  "agatpm1c",
+  "ecglvh1c",
+  "crp1",
+  "il61",
+  "pregn1",
+  "bpillyr1",
+  "menoage1",
   "htnmed",
   "diabins",
   "asacat",
@@ -109,7 +109,7 @@ baseline_table <-
       name == "race_asia1" ~ "Asian, %",
       name == "employed1" ~ "Currently employed, %",
       name == "retired1" ~ "Retired, %",
-      name == "evsmk1" ~ "Smoked >100 cigarettes in lifetime, %",
+      name == "evsmk1" ~ "Smoked <100 cigarettes in lifetime, %",
       name == "cursmk" ~ "Current smoker, %",
       name == "cesd1c" ~ "CES Depression scale (0-60)",
       name == "chrbu61c" ~ "Chronic burden scale (0-5)",
@@ -149,29 +149,80 @@ baseline_table <-
       name == "dpw" ~ "Drinks per week",
       name == "exercise" ~ "Exercise, MET/min"
     ),
-    name = escape_latex(name)
-  ) %>%
+    name = escape_latex(name),
+    name = str_replace(name, fixed("<"), "$<$") 
+  ) 
+
+
+
+baseline_table_gt <- 
+  baseline_table %>%
   gt() %>%
   cols_label(
     name = "",
     tx_1 = md(paste0("**(N = ", format(table(trials$tx)[2], big.mark = ","), ")**")),
     tx_0 = md(paste0("**(N = ", format(table(trials$tx)[1], big.mark = ","), ")**"))
   ) %>%
+  # tab_style(
+  #   style = list(
+  #     cell_borders("all", weight = NULL),
+  #     cell_text(indent = px(20))
+  #   ), 
+  #   locations = list(
+  #     cells_row_groups(),
+  #     cells_body(columns = name)
+  #   )
+  # ) %>%
   tab_spanner(label = md("**Initiators**"), columns = tx_1) %>%
   tab_spanner(label = md("**Non-initiators**"), columns = tx_0) %>%
-  tab_style(
-    style = list(cell_borders("all", weight = NULL)), 
-    locations = cells_column_spanners(c("**Initiators**", "**Non-initiators**"))
-    ) %>%
-  cols_align(align = "center", columns = c(tx_1, tx_0))
+  cols_align(align = "center", columns = c(tx_1, tx_0)) %>%
+  tab_row_group(
+    label = md("*Medications*"),
+    rows = 43:49
+  ) %>%
+  tab_row_group(
+    label = md("*CVD risk factors*"),
+    rows = 22:42
+  ) %>%
+  tab_row_group(
+    label = md("*Demographics*"),
+    rows = 1:21
+  )
 
-baseline_table %>% 
-  as_latex() %>%
-  as.character() %>%
-  remove_escape_latex() %>%
-  str_remove(., fixed("\n\\cmidrule(lr){2-2} \\cmidrule(lr){3-3}")) %>%
-  str_replace(., fixed(">"), "$>$") %>%
-  write_file("2_tables/baseline.tex")
+# baseline_table_gt %>% 
+#   as_latex() %>%
+#   as.character() %>%
+#   remove_escape_latex() %>%
+#   str_remove(., fixed("\n\\cmidrule(lr){2-2} \\cmidrule(lr){3-3}")) %>%
+#   str_remove_all(., fixed("\n\\midrule\n")) %>%
+#   str_replace(., fixed("\\multicolumn{1}{l}{\\emph{Demographics}}"), "\n\\midrule\n\\multicolumn{1}{l}{\\emph{Demographics}}") %>%
+#   str_replace(., fixed(">"), "$>$") %>%
+#   write_file("2_tables/baseline.tex")
+
+
+# just make a kable version dummy!
+kable(
+  x = baseline_table,
+  format = "latex",
+  col.names = c(
+    "",
+    paste0("(N = ", format(table(trials$tx)[2], big.mark = ","), ")"),
+    paste0("(N = ", format(table(trials$tx)[1], big.mark = ","), ")")
+  ),
+  align = "lcc",
+  escape = FALSE,
+  booktabs = TRUE,
+  linesep = "",
+  caption = "Baseline characteristics of initiators and non-initiators in emulated nested trials"
+) %>%
+  kable_styling(font_size = 8) %>%
+  row_spec(0, bold = TRUE) %>%
+  add_header_above(c(" ", "Initiators", "Non-initiators"), line = FALSE, bold = TRUE) %>%
+  group_rows("Demographics", 1, 21, italic = TRUE, bold = FALSE) %>%
+  group_rows("CVD risk factors", 22, 42, italic = TRUE, bold = FALSE) %>%
+  group_rows("Medications", 43, 49, italic = TRUE, bold = FALSE) %>%
+  save_kable(file = "2_tables/baseline.tex")  
+
 
 trials_pt <-
   trials_pt %>%
@@ -183,21 +234,3 @@ trials_long_pt <-
   mutate(
     across(c(str_replace(log_transform, "exercise", "bl_exercise"), "lag1_exercise"), ~log(.x + 1))
   )
-
-
-remove_escape_latex <- function(x) {
-  enable_special_characters = function(x) {
-    gsub("\\\\([&%$#_{}])", "\\1", x, fixed = FALSE, ignore.case = TRUE) 
-  }
-  enable_backslash = function(x) {
-    gsub("\\\\textbackslash([[:space:]])?", "\\\\", x, fixed = FALSE, ignore.case = TRUE)
-  }
-  enable_tilde = function(x) {
-    gsub("\\\\textasciitilde([[:space:]])?", "~", x, fixed = FALSE, ignore.case = TRUE)
-  }
-  enable_exponents = function(x) {
-    gsub("\\\\textasciicircum ", "\\^", x, fixed = FALSE, ignore.case = TRUE)
-  }
-  
-  enable_backslash(enable_special_characters(enable_tilde(enable_exponents(x))))
-}
